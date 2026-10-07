@@ -41,4 +41,15 @@ Three design proposals and an independent comparison are recorded in [the design
 
 All agents inherited the available parent model. These are independent same-model reviews, not multi-model diversity. No workspace transcript file was supplied; the audit uses current tool observations and repository artifacts.
 
-Histoire's beta build emits warnings about optional upstream setup exports. It builds and its Vue stories run. No website deployment, cloud synchronization, real operating-system installation prompt, or cross-browser certification is claimed.
+Histoire's beta build emits warnings about optional upstream setup exports. It builds and its Vue stories run. No cloud synchronization, real operating-system installation prompt, or cross-browser certification is claimed.
+
+## GitHub Pages verification
+
+[The live PWA](https://alexanderop.github.io/my-vue-pwa-starter/) is deployed from application commit `04aaeac0c581a07871e1408e12b202c0cca427c4`. [CI and Pages deployment](https://github.com/alexanderop/my-vue-pwa-starter/actions/runs/37576957143) succeeded.
+
+The first live smoke found that a full commit ID overflowed the mobile Settings row. The fix displays a short commit ID and lets the row wrap. A fresh live Chrome session at 360 × 800 with dark mode then passed saved-note persistence, Settings reload, service-worker scope, manifest start URL, offline reload and writes, and viewport overflow checks. No page errors were observed. The deployment smoke now uses this viewport and checks Settings before returning to Notes.
+
+- [Deployed Settings](screenshots/deployed-settings.png)
+- [Deployed offline notes](screenshots/deployed-offline.png)
+
+Reproduce with `node scripts/verify-deployment.mjs https://alexanderop.github.io/my-vue-pwa-starter/`. The smoke uses a disposable browser context. The final evidence commit changes documentation and the verification script only; the tested application build stays deployed. Physical phone installation and Safari remain manual checks.

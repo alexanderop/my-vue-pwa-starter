@@ -88,6 +88,14 @@ Host the build over HTTPS, or localhost for development. Hash routing lets appli
 
 The CI workflow deploys the app to GitHub Pages after all checks pass on `main`. In a repository created from this template, enable **Settings → Pages → Source → GitHub Actions**. The workflow derives the base path from Pages, so repository subpaths and custom domains work without changing application code. Histoire remains a separate local/build artifact.
 
+Check a deployed site in an isolated mobile Chrome session:
+
+```sh
+node scripts/verify-deployment.mjs https://alexanderop.github.io/my-vue-pwa-starter/
+```
+
+This checks the deployment path, service-worker scope, mobile layout, route reloads, and offline reads and writes. Notes created by the check stay in its temporary browser session.
+
 ## Design reference
 
 [Tilly](https://github.com/carlassmann/tilly) inspired the restrained colors, rounded controls, responsive navigation, and PWA interaction patterns. The Vue components and starter implementation are original. Geist and Lucide retain their respective package licenses.

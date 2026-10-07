@@ -19,9 +19,9 @@
 - [x] Build UI components and Histoire, then inspect the component workshop.
 - [x] Implement notes, native IndexedDB, and the PWA lifecycle.
 - [x] Run tests, production browser journeys, and independent review.
-- [ ] Publish the public GitHub repository and check CI. Repository is public and pushed; deployment verification follows.
+- [x] Publish the public GitHub repository and check CI. Public template repository and GitHub Pages deployment verified.
 - [x] Phase D: Keep the audit trail
-- [ ] Phase E: Verify and hand back. Local verification passed; remote CI and Pages verification remain.
+- [x] Phase E: Verify and hand back. Local checks, remote CI, and live Pages mobile/offline verification passed.
 
 ## Done predicate
 

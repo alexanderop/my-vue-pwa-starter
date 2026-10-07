@@ -7,7 +7,11 @@ if (!url)
 const target = new URL(url)
 const browser = await chromium.launch({ channel: 'chrome' })
 try {
-  const context = await browser.newContext({ ...devices['Pixel 7'] })
+  const context = await browser.newContext({
+    ...devices['Pixel 7'],
+    viewport: { width: 360, height: 800 },
+    colorScheme: 'dark',
+  })
   const page = await context.newPage()
   page.setDefaultTimeout(20_000)
   page.setDefaultNavigationTimeout(30_000)
@@ -52,6 +56,11 @@ try {
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true)
+  await mkdir('test-results', { recursive: true })
+  await page.screenshot({
+    path: 'test-results/deployed-settings.png',
+    fullPage: true,
+  })
   await page.getByRole('button', { name: 'Notes', exact: true }).click()
   await expect(
     page.getByRole('heading', { name: 'Phone check', exact: true }),
