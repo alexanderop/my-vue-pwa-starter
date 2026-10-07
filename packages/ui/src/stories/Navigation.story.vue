@@ -20,8 +20,8 @@ const items = [
         >
         <h1>{{ active === 'notes' ? 'Your notes' : 'Settings' }}</h1>
         <UiCard
-          >Navigation floats at the bottom on mobile and at the top on
-          desktop.</UiCard
+          >Mobile navigation uses a full-width bottom bar with icon-only
+          actions. Desktop navigation keeps visible labels at the top.</UiCard
         ><template #navigation
           ><AppNavigation
             v-model="active"
