@@ -19,9 +19,9 @@
 - [x] Build UI components and Histoire, then inspect the component workshop.
 - [x] Implement notes, native IndexedDB, and the PWA lifecycle.
 - [x] Run tests, production browser journeys, and independent review.
-- [ ] Publish the public GitHub repository and check CI. Repository created; push follows local verification.
+- [ ] Publish the public GitHub repository and check CI. Repository is public and pushed; deployment verification follows.
 - [x] Phase D: Keep the audit trail
-- [ ] Phase E: Verify and hand back. Local verification passed; remote CI remains.
+- [ ] Phase E: Verify and hand back. Local verification passed; remote CI and Pages verification remain.
 
 ## Done predicate
 
@@ -36,8 +36,8 @@ A fresh install builds both the PWA and Histoire. Strict types, lint, architectu
 
 ## Workflow mechanics
 
-Use local agents with inherited model because no project model configuration exists. Independent same-model review cannot provide cross-model diversity. The external cursor-team-kit deslop/control-ui tools are unavailable; use direct diff cleanup and the available Chrome/Playwright browser tools. New-repository publication is explicitly authorized. No website deployment is in scope. A transcript file for this new run is not supplied, so audit against current tool evidence and committed artifacts.
+Use local agents with inherited model because no project model configuration exists. Independent same-model review cannot provide cross-model diversity. The external cursor-team-kit deslop/control-ui tools are unavailable; use direct diff cleanup and the available Chrome/Playwright browser tools. New-repository publication is explicitly authorized. The user additionally authorized GitHub Pages deployment for phone testing. A transcript file for this new run is not supplied, so audit against current tool evidence and committed artifacts.
 
 ## Delivery choice
 
-The user requested a new public repository. This run publishes the initial implementation on main. An existing-base pull request and worktree rebase do not apply to an empty repository. No website deployment is included.
+The user requested a new public repository. This run publishes the initial implementation on main. An existing-base pull request and worktree rebase do not apply to an empty repository. GitHub Pages deploys the verified main branch.

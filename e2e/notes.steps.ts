@@ -144,7 +144,7 @@ When(
   'another tab installs a new version',
   async ({ page, context, request }) => {
     const updater = await context.newPage()
-    await updater.goto('/settings')
+    await updater.goto('/#/settings')
     await expect(updater.getByText('Version 1', { exact: true })).toBeVisible()
     await request.post('/__test/version?value=2')
     await updater

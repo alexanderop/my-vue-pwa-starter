@@ -2,6 +2,8 @@
 
 A Vue PWA starter with your own UI library, Histoire, and feature-based ports and adapters. The included Fieldnotes app saves notes on your device with native IndexedDB and works offline after its first successful load.
 
+[Try the live PWA](https://alexanderop.github.io/my-vue-pwa-starter/) on your phone. On iPhone, open it in Safari and use Share → Add to Home Screen. On Android, use your browser’s Install app or Add to Home screen action. Load it once online before trying offline mode.
+
 ## Run locally
 
 Use Node.js 22.12 or newer and pnpm 10.28.2.
@@ -80,7 +82,11 @@ pnpm build:app
 pnpm --filter @starter/playground preview
 ```
 
-Host the build over HTTPS, or localhost for development. Configure your host to serve `index.html` for application routes. Browser storage can be cleared or evicted; this starter does not provide cloud backup or synchronization.
+Host the build over HTTPS, or localhost for development. Hash routing lets application routes reload on static hosts without rewrite rules. Browser storage can be cleared or evicted; this starter does not provide cloud backup or synchronization.
+
+## GitHub Pages
+
+The CI workflow deploys the app to GitHub Pages after all checks pass on `main`. In a repository created from this template, enable **Settings → Pages → Source → GitHub Actions**. The workflow derives the base path from Pages, so repository subpaths and custom domains work without changing application code. Histoire remains a separate local/build artifact.
 
 ## Design reference
 

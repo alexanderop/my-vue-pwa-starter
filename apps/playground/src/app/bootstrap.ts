@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import NotesPage from '../features/notes/ui/NotesPage.vue'
 import SettingsPage from '../features/settings/ui/SettingsPage.vue'
 import { createIndexedDbNotes, createNotesService } from '../features/notes'
@@ -11,7 +11,7 @@ export function createApplication() {
     newId: () => crypto.randomUUID(),
   })
   const router = createRouter({
-    history: createWebHistory(import.meta.env.BASE_URL),
+    history: createWebHashHistory(import.meta.env.BASE_URL),
     routes: [
       {
         path: '/',
