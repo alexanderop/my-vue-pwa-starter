@@ -11,7 +11,9 @@ import { UiButton, UiCard, UiBadge } from '@starter/ui'
 import type { Theme, AppCapabilities } from '../ports/settings'
 defineProps<{ theme: Theme; pwa: AppCapabilities }>()
 const emit = defineEmits<{ 'update:theme': [theme: Theme] }>()
-const version = __APP_VERSION__
+const version = /^[a-f0-9]{40}$/.test(__APP_VERSION__)
+  ? __APP_VERSION__.slice(0, 7)
+  : __APP_VERSION__
 const themes = [
   { value: 'system', label: 'System', icon: Monitor },
   { value: 'light', label: 'Light', icon: Sun },

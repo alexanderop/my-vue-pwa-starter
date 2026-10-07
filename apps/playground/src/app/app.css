@@ -400,6 +400,8 @@ h1 {
   color: var(--color-muted);
 }
 .update-row {
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
   margin-top: 24px;
   font-size: 12px;
 }
