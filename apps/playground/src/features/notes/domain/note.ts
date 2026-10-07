@@ -19,14 +19,21 @@ export type NoteError = Readonly<{
 }>
 export type Result<T> = { ok: true; value: T } | { ok: false; error: NoteError }
 
+const timestampSchema = v.pipe(
+  v.number(),
+  v.finite(),
+  v.minValue(0),
+  v.maxValue(8_640_000_000_000_000),
+)
+
 export const noteSchema = v.object({
   id: v.pipe(v.string(), v.minLength(1)),
   title: v.pipe(v.string(), v.minLength(1), v.maxLength(120)),
   body: v.pipe(v.string(), v.maxLength(20_000)),
   pinned: v.boolean(),
-  createdAt: v.pipe(v.number(), v.finite(), v.minValue(0)),
-  updatedAt: v.pipe(v.number(), v.finite(), v.minValue(0)),
-  deletedAt: v.optional(v.pipe(v.number(), v.finite(), v.minValue(0))),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+  deletedAt: v.optional(timestampSchema),
   revision: v.pipe(v.number(), v.integer(), v.minValue(1)),
 })
 

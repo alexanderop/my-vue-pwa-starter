@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createNotesService } from './createNotesService'
 import type { Note, Result } from '../domain/note'
 import type { NoteRepository } from '../ports/NoteRepository'
@@ -175,4 +175,46 @@ it('imports validated backups as copies while preserving originals and rejects u
     }),
   ).toMatchObject({ ok: false })
   expect(value(await service.exportData())).toHaveLength(2)
+})
+
+it.each(['createdAt', 'updatedAt', 'deletedAt'] as const)(
+  'rejects an out-of-range %s in a backup before any write',
+  async (field) => {
+    const { service, repository } = fixture()
+    const original = value(
+      await service.create({ title: 'Keep', body: 'Existing note' }),
+    )
+    const write = vi.spyOn(repository, 'addMany')
+    for (const timestamp of [8_640_000_000_000_001, 1e300]) {
+      expect(
+        await service.importData({
+          format: 'fieldnotes',
+          version: 1,
+          notes: [original, { ...original, [field]: timestamp }],
+        }),
+      ).toMatchObject({ ok: false, error: { kind: 'validation' } })
+    }
+    expect(write).not.toHaveBeenCalled()
+    expect(value(await service.exportData())).toEqual([original])
+  },
+)
+
+it('accepts the inclusive JavaScript Date timestamp limit', async () => {
+  const { service } = fixture()
+  const original = value(
+    await service.create({ title: 'Date limit', body: '' }),
+  )
+  const limit = 8_640_000_000_000_000
+  expect(
+    value(
+      await service.importData({
+        format: 'fieldnotes',
+        version: 1,
+        notes: [
+          { ...original, createdAt: limit, updatedAt: limit, deletedAt: limit },
+        ],
+      }),
+    ),
+  ).toBe(1)
+  expect(() => new Date(limit).toISOString()).not.toThrow()
 })

@@ -6,7 +6,7 @@ The UI/UX recovery revision passed these commands on macOS with Node 22.22.3 and
 | -------------------------------- | ---------------------------------------------------------- |
 | `pnpm install --frozen-lockfile` | Passed                                                     |
 | `pnpm verify`                    | Types, lint, formatting, and architecture passed           |
-| `pnpm test:unit`                 | 7 tests passed                                             |
+| `pnpm test:unit`                 | 11 tests passed                                            |
 | `pnpm test:browser`              | 16 tests passed in Chrome                                  |
 | `pnpm build`                     | PWA and Histoire passed                                    |
 | `pnpm test:e2e`                  | 13 production journeys passed in desktop and mobile Chrome |
@@ -36,7 +36,7 @@ Additional production journeys prove:
 - A downloaded JSON backup can be imported as copies without replacing the original.
 - A mobile drag-to-dismiss attempt rejected by the unsaved-changes confirmation leaves the draft and sheet position intact. Ctrl+Enter then saves it.
 
-Browser-layer regressions use real IndexedDB for version 1 migration, optimistic concurrency, atomic batch rollback, invalid backup rejection, and additive import. UI browser tests cover removed-opener focus fallback, hash-safe skip links, controlled mobile dismissal, and error-boundary diagnostic privacy. Unit tests cover trash/restore and backup application policy.
+Browser-layer regressions use real IndexedDB for version 1 migration, optimistic concurrency, atomic batch rollback, invalid backup rejection, and additive import. UI browser tests cover removed-opener focus fallback, hash-safe skip links, controlled mobile dismissal, and error-boundary diagnostic privacy. Unit tests cover trash/restore and backup application policy, including rejecting all out-of-range date fields before any write.
 
 The backup UI rejects files larger than 10 MB; the schema rejects more than 5,000 notes or an unsupported envelope version. Export preflights the same limits. Oversized full backups are currently unavailable, with a clear error and no data modification. No bulk test claiming performance at these limits was run.
 
