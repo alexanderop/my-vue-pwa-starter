@@ -1,0 +1,51 @@
+import * as v from 'valibot'
+
+export type Note = Readonly<{
+  id: string
+  title: string
+  body: string
+  pinned: boolean
+  createdAt: number
+  updatedAt: number
+  revision: number
+}>
+
+export type NoteDraft = Readonly<{ title: string; body: string }>
+export type NoteError = Readonly<{
+  kind: 'validation' | 'storage' | 'conflict' | 'corrupt'
+  message: string
+}>
+export type Result<T> = { ok: true; value: T } | { ok: false; error: NoteError }
+
+export const noteSchema = v.object({
+  id: v.pipe(v.string(), v.minLength(1)),
+  title: v.pipe(v.string(), v.minLength(1), v.maxLength(120)),
+  body: v.pipe(v.string(), v.maxLength(20_000)),
+  pinned: v.boolean(),
+  createdAt: v.pipe(v.number(), v.finite(), v.minValue(0)),
+  updatedAt: v.pipe(v.number(), v.finite(), v.minValue(0)),
+  revision: v.pipe(v.number(), v.integer(), v.minValue(1)),
+})
+
+const draftSchema = v.object({
+  title: v.pipe(
+    v.string(),
+    v.trim(),
+    v.minLength(1, 'Give your note a title.'),
+    v.maxLength(120, 'Keep the title under 121 characters.'),
+  ),
+  body: v.pipe(
+    v.string(),
+    v.maxLength(20_000, 'Keep the note under 20,001 characters.'),
+  ),
+})
+
+export function parseDraft(draft: NoteDraft): Result<NoteDraft> {
+  const parsed = v.safeParse(draftSchema, draft)
+  return parsed.success
+    ? { ok: true, value: parsed.output }
+    : {
+        ok: false,
+        error: { kind: 'validation', message: parsed.issues[0].message },
+      }
+}
