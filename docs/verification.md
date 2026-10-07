@@ -70,3 +70,7 @@ The earlier initial-deployment smoke found that a full commit ID overflowed the 
 Reproduce with `node scripts/verify-deployment.mjs https://alexanderop.github.io/my-vue-pwa-starter/`. The smoke uses a disposable browser context. The final evidence commit changes documentation and the verification script only; the tested application build stays deployed. Physical phone installation and Safari remain manual checks.
 
 The recovery revision was independently checked on the published site in a fresh 360 × 800 Chrome context. Conflict review and saving a copy, deleted-opener focus, Undo, downloaded backup import, hash-safe skip navigation, and browser Back restoring exactly 700 pixels all passed. The production smoke also passed offline saving and reopening with no page errors. Updated screenshots above show build `d74ccb3`. A malformed backup timestamp was reproduced locally, fixed before deployment, and verified to leave the notebook unchanged.
+
+## Mobile navigation reference
+
+Build `c87d9f3` replaces the floating mobile navigation with a full-width, icon-only bottom bar. It retains accessible names, active-page semantics, desktop labels, and safe-area padding. [CI and deployment](https://github.com/alexanderop/my-vue-pwa-starter/actions/runs/37579571407) passed. The shared Histoire story and live app were checked at 360 × 800: the bar spans the viewport and both navigation actions work. [Published mobile screenshot](screenshots/mobile-navigation.png).
