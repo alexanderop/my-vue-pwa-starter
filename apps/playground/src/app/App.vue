@@ -18,6 +18,10 @@ const items = [
 ]
 const active = computed(() => String(route.name ?? 'notes'))
 function navigate(id: string) {
+  if (route.name === id) {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+    return
+  }
   void router.push({ name: id })
 }
 </script>

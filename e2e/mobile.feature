@@ -9,3 +9,8 @@ Feature: A notebook on a small screen
     Then the dark theme is remembered
     When I delete "A pocket notebook"
     Then the notebook is empty
+
+  Scenario: Swiping a sheet respects an unsaved draft
+    Given I open a fresh notebook
+    When I start an unsaved note
+    Then swiping the sheet cannot silently discard my draft

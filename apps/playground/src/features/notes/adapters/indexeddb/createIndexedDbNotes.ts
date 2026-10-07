@@ -54,13 +54,14 @@ export function createIndexedDbNotes({
       }
       cancelOpen = () => finish(storageFailure())
       try {
-        const request = indexedDB.open(name, 1)
+        const request = indexedDB.open(name, 2)
         request.onupgradeneeded = () => {
           if (settled || closed) {
             request.transaction?.abort()
             return
           }
-          request.result.createObjectStore('notes', { keyPath: 'id' })
+          if (!request.result.objectStoreNames.contains('notes'))
+            request.result.createObjectStore('notes', { keyPath: 'id' })
         }
         request.onerror = () => finish(storageFailure())
         request.onblocked = () =>
@@ -143,6 +144,11 @@ export function createIndexedDbNotes({
   }
 
   return {
+    addMany: (notes) =>
+      transaction<void>('readwrite', (store, complete) => {
+        for (const note of notes) store.add(note)
+        complete({ ok: true, value: undefined })
+      }),
     list: () =>
       transaction<readonly Note[]>('readonly', (store, complete) => {
         const request = store.getAll()

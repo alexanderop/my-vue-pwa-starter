@@ -3,6 +3,7 @@ import { page, userEvent } from 'vitest/browser'
 import { render } from 'vitest-browser-vue'
 import { UiInput, UiTextarea } from '../index'
 import DialogHarness from './DialogHarness.vue'
+import RecoveryHarness from './RecoveryHarness.vue'
 import '../styles/index.css'
 
 test('dialog traps focus, closes with Escape, and returns focus to its opener', async () => {
@@ -55,4 +56,50 @@ test('textarea forwards native attributes and has an accessible label', async ()
   const field = page.getByRole('textbox', { name: 'Your note' })
   await expect.element(field).toHaveValue('Keep this thought')
   await expect.element(field).toHaveAttribute('readonly')
+})
+
+test('skip link focuses main content without changing a hash route', async () => {
+  render(RecoveryHarness)
+  const previous = window.location.hash
+  window.history.replaceState(null, '', '#/settings')
+  try {
+    const link = page.getByRole('link', { name: 'Skip to content' })
+    ;(link.element() as HTMLElement).focus()
+    await userEvent.keyboard('{Enter}')
+    await expect.element(page.getByRole('main')).toHaveFocus()
+    expect(window.location.hash).toBe('#/settings')
+  } finally {
+    window.history.replaceState(null, '', previous || window.location.pathname)
+  }
+})
+
+test('closing a dialog whose opener was removed focuses the main landmark', async () => {
+  render(RecoveryHarness)
+  await page.getByRole('button', { name: 'Delete item', exact: true }).click()
+  await page.getByRole('button', { name: 'Confirm deletion' }).click()
+  await expect.element(page.getByRole('dialog')).not.toBeInTheDocument()
+  await expect.element(page.getByRole('main')).toHaveFocus()
+})
+
+test('mobile sheet dragging requests dismissal and respects a rejected close', async () => {
+  const { default: GuardedSheetHarness } =
+    await import('./GuardedSheetHarness.vue')
+  await page.viewport(390, 844)
+  try {
+    render(GuardedSheetHarness)
+    await page.getByRole('button', { name: 'Open guarded sheet' }).click()
+    const target = page.getByRole('button', { name: 'Allow closing' })
+    const handle = document.querySelector('.ui-dialog__handle')
+    if (!handle) throw new Error('Missing sheet handle')
+    await userEvent.dragAndDrop(handle, target)
+    await expect
+      .element(page.getByRole('status'))
+      .toHaveTextContent('Close was rejected.')
+    await expect.element(page.getByRole('dialog')).toBeVisible()
+    await target.click()
+    await userEvent.dragAndDrop(handle, target)
+    await expect.element(page.getByRole('dialog')).not.toBeInTheDocument()
+  } finally {
+    await page.viewport(1280, 720)
+  }
 })

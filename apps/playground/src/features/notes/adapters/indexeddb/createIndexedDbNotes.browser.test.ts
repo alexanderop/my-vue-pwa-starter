@@ -74,7 +74,7 @@ it('reports invalid stored data without overwriting or deleting it', async () =>
   const { adapter, name } = repository()
   await adapter.list()
   const raw = await new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(name, 1)
+    const request = indexedDB.open(name, 2)
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => reject(request.error)
   })
@@ -114,7 +114,7 @@ it('releases its connection for upgrades and requires a reload afterwards', asyn
   const { adapter, name } = repository()
   await adapter.save(note, null)
   const upgraded = await new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(name, 2)
+    const request = indexedDB.open(name, 3)
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => reject(request.error)
   })
@@ -127,4 +127,44 @@ it('releases its connection for upgrades and requires a reload afterwards', asyn
     ok: false,
     error: { kind: 'storage' },
   })
+})
+
+it('upgrades legacy notes without losing data and prevents old clients reopening version 1', async () => {
+  const name = `notes-test-${crypto.randomUUID()}`
+  databases.push(name)
+  const legacy = await new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open(name, 1)
+    request.onupgradeneeded = () =>
+      request.result.createObjectStore('notes', { keyPath: 'id' })
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+  await new Promise<void>((resolve) => {
+    const tx = legacy.transaction('notes', 'readwrite')
+    tx.objectStore('notes').put(note)
+    tx.oncomplete = () => resolve()
+  })
+  legacy.onversionchange = () => legacy.close()
+  const adapter = repository(name).adapter
+  expect(await adapter.list()).toEqual({ ok: true, value: [note] })
+  expect(
+    await adapter.save({ ...note, deletedAt: 2, revision: 2 }, 1),
+  ).toMatchObject({ ok: true })
+  const oldError = await new Promise<string>((resolve) => {
+    const request = indexedDB.open(name, 1)
+    request.onerror = () => resolve(request.error?.name ?? '')
+  })
+  expect(oldError).toBe('VersionError')
+  expect(await adapter.list()).toMatchObject({
+    ok: true,
+    value: [{ deletedAt: 2 }],
+  })
+})
+it('rolls back the whole import when a generated identity collides', async () => {
+  const { adapter } = repository()
+  await adapter.save(note, null)
+  expect(await adapter.addMany([{ ...note, id: 'new' }, note])).toMatchObject({
+    ok: false,
+  })
+  expect(await adapter.list()).toEqual({ ok: true, value: [note] })
 })

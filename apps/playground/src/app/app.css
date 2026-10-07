@@ -304,7 +304,7 @@ h1 {
   color: var(--color-muted);
 }
 .form-error {
-  color: #b84638;
+  color: var(--color-danger);
   font-size: 13px;
 }
 .inline-error {
@@ -490,10 +490,11 @@ h1 {
     max-width: 270px;
   }
   .notes-toolbar {
-    gap: 14px;
+    gap: 10px;
+    flex-wrap: wrap;
   }
   .search-field {
-    width: min(260px, 75%);
+    width: 100%;
   }
   .notes-grid {
     grid-template-columns: 1fr;

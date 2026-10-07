@@ -13,7 +13,7 @@ pnpm install
 pnpm dev
 ```
 
-Open http://127.0.0.1:4173. Create a note to try the example feature.
+Open http://127.0.0.1:4173. Create a note to try the example feature. Deleted notes go to Trash and can be restored. Settings offers JSON backup export and import; imports add copies without replacing existing notes. Backups support up to 5,000 notes and 10 MB.
 
 To explore the production UI components in Histoire:
 

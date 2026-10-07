@@ -1,15 +1,15 @@
 # Verification
 
-The initial implementation passed these commands on macOS with Node 24 and Google Chrome.
+The UI/UX recovery revision passed these commands on macOS with Node 22.22.3 and Google Chrome. The deployment section below records the earlier published build until this revision is deployed.
 
-| Command                          | Result                                                    |
-| -------------------------------- | --------------------------------------------------------- |
-| `pnpm install --frozen-lockfile` | Passed                                                    |
-| `pnpm verify`                    | Types, lint, formatting, and architecture passed          |
-| `pnpm test:unit`                 | 5 tests passed                                            |
-| `pnpm test:browser`              | 8 tests passed in Chrome                                  |
-| `pnpm build`                     | PWA and Histoire passed                                   |
-| `pnpm test:e2e`                  | 7 production journeys passed in desktop and mobile Chrome |
+| Command                          | Result                                                     |
+| -------------------------------- | ---------------------------------------------------------- |
+| `pnpm install --frozen-lockfile` | Passed                                                     |
+| `pnpm verify`                    | Types, lint, formatting, and architecture passed           |
+| `pnpm test:unit`                 | 7 tests passed                                             |
+| `pnpm test:browser`              | 16 tests passed in Chrome                                  |
+| `pnpm build`                     | PWA and Histoire passed                                    |
+| `pnpm test:e2e`                  | 13 production journeys passed in desktop and mobile Chrome |
 
 The architecture check also rejects six intentionally forbidden imports and browser-global usages in isolated temporary fixtures.
 
@@ -24,6 +24,21 @@ The architecture check also rejects six intentionally forbidden imports and brow
 - Pin and delete notes, remember the dark theme, and fit a mobile viewport with touch enabled.
 
 The production test server builds two versions in separate output directories. It provides a separate origin for the browser Back journey. Its controls are test-only and do not enter the application build.
+
+## UI/UX recovery regressions
+
+Additional production journeys prove:
+
+- A real two-tab edit conflict preserves the draft while showing the latest saved version, then saves the draft as a separate note.
+- Deletion moves focus to the main landmark, Undo restores the note, and Trash survives a reload before restoration.
+- Empty-title validation connects its error through ARIA and focuses the title field.
+- Search survives a Settings round trip; Settings reselect scrolls top, and its skip link keeps the route unchanged. Browser Back restores a populated note list to its saved 700-pixel position after asynchronous loading.
+- A downloaded JSON backup can be imported as copies without replacing the original.
+- A mobile drag-to-dismiss attempt rejected by the unsaved-changes confirmation leaves the draft and sheet position intact. Ctrl+Enter then saves it.
+
+Browser-layer regressions use real IndexedDB for version 1 migration, optimistic concurrency, atomic batch rollback, invalid backup rejection, and additive import. UI browser tests cover removed-opener focus fallback, hash-safe skip links, controlled mobile dismissal, and error-boundary diagnostic privacy. Unit tests cover trash/restore and backup application policy.
+
+The backup UI rejects files larger than 10 MB; the schema rejects more than 5,000 notes or an unsupported envelope version. Export preflights the same limits. Oversized full backups are currently unavailable, with a clear error and no data modification. No bulk test claiming performance at these limits was run.
 
 ## Visual inspection
 

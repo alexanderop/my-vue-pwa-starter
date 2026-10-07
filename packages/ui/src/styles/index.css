@@ -257,11 +257,20 @@ textarea.ui-field__control {
   box-shadow: 0 24px 100px #0003;
 }
 .ui-dialog__handle {
+  width: 80px;
+  height: 28px;
+  margin: -6px auto 5px;
+  touch-action: none;
+  cursor: grab;
+  display: grid;
+  place-items: center;
+}
+.ui-dialog__handle::after {
+  content: '';
   width: 36px;
   height: 4px;
   border-radius: 4px;
   background: var(--color-border);
-  margin: 0 auto 17px;
 }
 .ui-dialog__header {
   display: flex;
@@ -413,6 +422,15 @@ textarea.ui-field__control {
   }
 }
 @media (max-width: 767px) {
+  body:has(
+      input:not([type='radio']):not([type='checkbox']):focus,
+      textarea:focus,
+      [contenteditable='true']:focus
+    )
+    .ui-app-navigation {
+    visibility: hidden;
+    pointer-events: none;
+  }
   .ui-app-header {
     min-height: 80px;
     padding: 20px;

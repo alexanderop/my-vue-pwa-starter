@@ -249,3 +249,35 @@ Then('the notebook was restored from the browser cache', async ({ page }) => {
     'true',
   )
 })
+
+Then('swiping the sheet cannot silently discard my draft', async ({ page }) => {
+  const handle = page.locator('.ui-dialog__handle')
+  const bounds = await handle.boundingBox()
+  if (!bounds) throw new Error('Sheet handle is missing')
+  page.once('dialog', (dialog) => dialog.dismiss())
+  await page.mouse.move(
+    bounds.x + bounds.width / 2,
+    bounds.y + bounds.height / 2,
+  )
+  await page.mouse.down()
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + 130, {
+    steps: 8,
+  })
+  await page.mouse.up()
+  await expect(
+    page.getByRole('dialog', { name: 'New note', exact: true }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('textbox', { name: 'Title', exact: true }),
+  ).toHaveValue('Unfinished thought')
+  await expect(page.locator('.ui-dialog')).not.toHaveAttribute(
+    'style',
+    /translateY/,
+  )
+  await page.getByRole('textbox', { name: 'Note', exact: true }).focus()
+  await page.keyboard.press('Control+Enter')
+  await expect(page.getByRole('dialog')).not.toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Unfinished thought', exact: true }),
+  ).toBeVisible()
+})

@@ -14,6 +14,14 @@ export function useTheme() {
     document.documentElement.classList.toggle('dark', dark)
     document.documentElement.dataset.theme = dark ? 'dark' : 'light'
     document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+    document
+      .querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+      ?.setAttribute(
+        'content',
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-background')
+          .trim(),
+      )
   }
   watch(preference, (value) => {
     apply()

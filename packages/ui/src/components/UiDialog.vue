@@ -12,7 +12,11 @@ import {
 } from 'reka-ui'
 import UiIconButton from './UiIconButton.vue'
 const open = defineModel<boolean>('open', { default: false })
-defineProps<{ title: string; description?: string }>()
+const props = defineProps<{
+  title: string
+  description?: string
+  fallbackFocus?: string
+}>()
 const descriptionId = useId()
 const returnFocus = ref<HTMLElement>()
 function captureFocus() {
@@ -20,10 +24,36 @@ function captureFocus() {
     returnFocus.value = document.activeElement
 }
 function restoreFocus(event: Event) {
-  if (returnFocus.value?.isConnected) {
+  const target = returnFocus.value?.isConnected
+    ? returnFocus.value
+    : document.querySelector<HTMLElement>(
+        props.fallbackFocus ?? 'main[tabindex="-1"]',
+      )
+  if (target) {
     event.preventDefault()
-    returnFocus.value.focus()
+    target.focus({ preventScroll: true })
   }
+}
+const dragOffset = ref(0)
+let dragStart: number | undefined
+function startDrag(event: PointerEvent) {
+  if (event.button !== 0 || !matchMedia('(max-width: 767px)').matches) return
+  dragStart = event.clientY
+  ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+}
+function moveDrag(event: PointerEvent) {
+  if (dragStart !== undefined)
+    dragOffset.value = Math.max(0, event.clientY - dragStart)
+}
+function endDrag() {
+  const dismiss = dragOffset.value >= 80
+  dragStart = undefined
+  dragOffset.value = 0
+  if (dismiss) open.value = false
+}
+function cancelDrag() {
+  dragStart = undefined
+  dragOffset.value = 0
 }
 </script>
 <template>
@@ -32,11 +62,21 @@ function restoreFocus(event: Event) {
       <DialogOverlay class="ui-dialog-overlay" />
       <DialogContent
         class="ui-dialog"
+        :style="
+          dragOffset ? { transform: `translateY(${dragOffset}px)` } : undefined
+        "
         :aria-describedby="description ? descriptionId : undefined"
         @open-auto-focus="captureFocus"
         @close-auto-focus="restoreFocus"
       >
-        <div class="ui-dialog__handle" aria-hidden="true" />
+        <div
+          class="ui-dialog__handle"
+          aria-hidden="true"
+          @pointerdown="startDrag"
+          @pointermove="moveDrag"
+          @pointerup="endDrag"
+          @pointercancel="cancelDrag"
+        />
         <header class="ui-dialog__header">
           <div>
             <DialogTitle class="ui-dialog__title">{{ title }}</DialogTitle

@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
+import type { NotesService } from '../../notes'
 import {
   Download,
   Monitor,
@@ -9,8 +12,109 @@ import {
 } from '@lucide/vue'
 import { UiButton, UiCard, UiBadge } from '@starter/ui'
 import type { Theme, AppCapabilities } from '../ports/settings'
-defineProps<{ theme: Theme; pwa: AppCapabilities }>()
-const emit = defineEmits<{ 'update:theme': [theme: Theme] }>()
+const props = defineProps<{
+  theme: Theme
+  pwa: AppCapabilities
+  service: NotesService
+}>()
+const emit = defineEmits<{
+  'update:theme': [theme: Theme]
+  'busy-change': [busy: boolean]
+}>()
+const backupBusy = ref(false)
+const backupMessage = ref('')
+const backupError = ref('')
+const importFile = ref<HTMLInputElement>()
+onBeforeRouteLeave(() => !backupBusy.value)
+function protectBackup(event: BeforeUnloadEvent) {
+  if (!backupBusy.value) return
+  event.preventDefault()
+  event.returnValue = ''
+}
+onMounted(() => window.addEventListener('beforeunload', protectBackup))
+onUnmounted(() => {
+  window.removeEventListener('beforeunload', protectBackup)
+  emit('busy-change', false)
+})
+const installPlatform =
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    ? 'ios'
+    : /Android/.test(navigator.userAgent)
+      ? 'android'
+      : 'desktop'
+
+function startBackup() {
+  backupBusy.value = true
+  backupMessage.value = ''
+  backupError.value = ''
+  emit('busy-change', true)
+}
+function finishBackup() {
+  backupBusy.value = false
+  emit('busy-change', false)
+}
+async function exportBackup() {
+  startBackup()
+  try {
+    const result = await props.service.exportData()
+    if (!result.ok) {
+      backupError.value = result.error.message
+      return
+    }
+    const payload = { format: 'fieldnotes', version: 1, notes: result.value }
+    const serialized = JSON.stringify(payload, null, 2)
+    const blob = new Blob([serialized], { type: 'application/json' })
+    if (result.value.length > 5000 || blob.size > 10 * 1024 * 1024) {
+      backupError.value =
+        'This collection exceeds the backup limit of 5,000 notes or 10 MB. No backup was downloaded. Your notes are unchanged.'
+      return
+    }
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `fieldnotes-${new Date().toISOString().slice(0, 10)}.json`
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    backupMessage.value = `Backup download started: ${result.value.length} ${result.value.length === 1 ? 'note' : 'notes'}, including trash. Keep it somewhere safe.`
+  } catch {
+    backupError.value = 'The backup could not be downloaded. Please try again.'
+  } finally {
+    finishBackup()
+  }
+}
+async function importBackup(event: Event) {
+  const input = event.target
+  if (!(input instanceof HTMLInputElement)) return
+  const file = input.files?.[0]
+  if (!file) return
+  startBackup()
+  try {
+    if (file.size > 10 * 1024 * 1024) {
+      backupError.value = 'Choose a backup smaller than 10 MB.'
+      return
+    }
+    let payload: unknown
+    try {
+      payload = JSON.parse(await file.text())
+    } catch {
+      backupError.value =
+        'This file is not readable JSON. Choose a Fieldnotes backup.'
+      return
+    }
+    const result = await props.service.importData(payload)
+    if (!result.ok) {
+      backupError.value = result.error.message
+      return
+    }
+    backupMessage.value = `Imported ${result.value} ${result.value === 1 ? 'note' : 'notes'} as new copies. Existing notes were kept. Trashed notes are in Trash.`
+  } catch {
+    backupError.value = 'The backup could not be imported. Please try again.'
+  } finally {
+    input.value = ''
+    finishBackup()
+  }
+}
 const version = /^[a-f0-9]{40}$/.test(__APP_VERSION__)
   ? __APP_VERSION__.slice(0, 7)
   : __APP_VERSION__
@@ -62,11 +166,47 @@ const themes = [
       <UiButton v-else-if="pwa.canInstall.value" @click="pwa.install"
         >Install Fieldnotes</UiButton
       >
-      <p v-else class="install-help">
-        On iPhone or iPad, open in Safari, tap Share, then Add to Home Screen.
-        On desktop or Android, look for Install app or Add to Home screen in
-        your browser menu.
-      </p></UiCard
+      <div v-else class="install-help">
+        <p>
+          Installation depends on your browser. Choose your device for help.
+        </p>
+        <details :open="installPlatform === 'ios'">
+          <summary>iPhone or iPad</summary>
+          <ol>
+            <li>Open this page in Safari.</li>
+            <li>
+              Tap Share, then Add to Home Screen. You may need to scroll through
+              the actions.
+            </li>
+            <li>Tap Add, then open Fieldnotes from your Home Screen.</li>
+          </ol>
+        </details>
+        <details :open="installPlatform === 'android'">
+          <summary>Android</summary>
+          <ol>
+            <li>Open this page in Chrome.</li>
+            <li>
+              Open the browser menu and choose Install app or Add to Home
+              screen.
+            </li>
+            <li>
+              Follow the browser instructions. The wording can vary by device.
+            </li>
+          </ol>
+        </details>
+        <details :open="installPlatform === 'desktop'">
+          <summary>Computer</summary>
+          <p>
+            In Chrome or Edge, look for the install icon in the address bar or
+            Install in the browser menu. In Safari on a supported Mac, choose
+            File → Add to Dock.
+          </p>
+          <p>
+            If your browser offers no installation option, you can still use
+            Fieldnotes in a tab.
+          </p>
+        </details>
+      </div></UiCard
     >
     <UiCard class="settings-card"
       ><div class="settings-row">
@@ -98,6 +238,49 @@ const themes = [
         {{ pwa.status.value }}
       </p></UiCard
     >
+    <UiCard class="settings-card" aria-labelledby="backup-title">
+      <h2 id="backup-title">Your notes, with you</h2>
+      <p class="muted">
+        Download a JSON backup of all your notes, including Trash. Backups are
+        plain text; store them somewhere private.
+      </p>
+      <p class="muted">
+        Import a Fieldnotes backup to add new copies. Existing notes are never
+        replaced. Importing the same backup twice creates duplicates. Up to
+        5,000 notes and 10 MB per file.
+      </p>
+      <div class="backup-actions">
+        <UiButton
+          variant="secondary"
+          :disabled="backupBusy"
+          @click="exportBackup"
+          >Export backup</UiButton
+        >
+        <UiButton
+          variant="secondary"
+          :disabled="backupBusy"
+          @click="importFile?.click()"
+          >Import backup</UiButton
+        >
+        <input
+          ref="importFile"
+          class="sr-only"
+          type="file"
+          accept=".json,application/json"
+          aria-label="Choose a Fieldnotes backup"
+          :disabled="backupBusy"
+          tabindex="-1"
+          @change="importBackup"
+        />
+      </div>
+      <p v-if="backupBusy" role="status">
+        Working on your backup. Keep this page open until it finishes…
+      </p>
+      <p v-if="backupMessage" role="status">{{ backupMessage }}</p>
+      <p v-if="backupError" role="alert" class="backup-error">
+        {{ backupError }}
+      </p>
+    </UiCard>
     <div class="privacy-note">
       <ShieldCheck :size="19" aria-hidden="true" />
       <p>
@@ -107,3 +290,31 @@ const themes = [
     </div>
   </section>
 </template>
+
+<style scoped>
+.install-help details {
+  margin-top: 12px;
+}
+.install-help summary {
+  cursor: pointer;
+  color: var(--color-foreground);
+  font-weight: 600;
+  padding-block: 8px;
+}
+.install-help ol {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+.install-help li + li {
+  margin-top: 8px;
+}
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+.backup-error {
+  color: var(--color-danger);
+}
+</style>

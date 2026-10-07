@@ -8,12 +8,14 @@ export type Note = Readonly<{
   createdAt: number
   updatedAt: number
   revision: number
+  deletedAt?: number
 }>
 
 export type NoteDraft = Readonly<{ title: string; body: string }>
 export type NoteError = Readonly<{
   kind: 'validation' | 'storage' | 'conflict' | 'corrupt'
   message: string
+  field?: 'title' | 'body'
 }>
 export type Result<T> = { ok: true; value: T } | { ok: false; error: NoteError }
 
@@ -24,6 +26,7 @@ export const noteSchema = v.object({
   pinned: v.boolean(),
   createdAt: v.pipe(v.number(), v.finite(), v.minValue(0)),
   updatedAt: v.pipe(v.number(), v.finite(), v.minValue(0)),
+  deletedAt: v.optional(v.pipe(v.number(), v.finite(), v.minValue(0))),
   revision: v.pipe(v.number(), v.integer(), v.minValue(1)),
 })
 
@@ -46,6 +49,16 @@ export function parseDraft(draft: NoteDraft): Result<NoteDraft> {
     ? { ok: true, value: parsed.output }
     : {
         ok: false,
-        error: { kind: 'validation', message: parsed.issues[0].message },
+        error: {
+          kind: 'validation',
+          message: parsed.issues[0].message,
+          field: parsed.issues[0].path?.[0]?.key === 'body' ? 'body' : 'title',
+        },
       }
 }
+
+export const backupSchema = v.object({
+  format: v.literal('fieldnotes'),
+  version: v.literal(1),
+  notes: v.pipe(v.array(noteSchema), v.maxLength(5000)),
+})

@@ -1,8 +1,20 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+const main = ref<HTMLElement>()
+function skipToContent() {
+  main.value?.focus()
+  main.value?.scrollIntoView({ block: 'start' })
+}
+</script>
 <template>
   <div class="ui-app-shell">
-    <a href="#main-content" class="ui-skip-link">Skip to content</a>
+    <a href="#main-content" class="ui-skip-link" @click.prevent="skipToContent"
+      >Skip to content</a
+    >
     <header class="ui-app-header"><slot name="header" /></header>
-    <main id="main-content" class="ui-app-main" tabindex="-1"><slot /></main>
+    <main id="main-content" ref="main" class="ui-app-main" tabindex="-1">
+      <slot />
+    </main>
     <div class="ui-app-navigation"><slot name="navigation" /></div>
   </div>
 </template>
