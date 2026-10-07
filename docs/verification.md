@@ -1,6 +1,6 @@
 # Verification
 
-The UI/UX recovery revision passed these commands on macOS with Node 22.22.3 and Google Chrome. The deployment section below records the earlier published build until this revision is deployed.
+The UI/UX recovery revision passed these commands on macOS with Node 22.22.3 and Google Chrome. The same application revision passed GitHub CI and live Pages checks.
 
 | Command                          | Result                                                     |
 | -------------------------------- | ---------------------------------------------------------- |
@@ -60,11 +60,13 @@ Histoire's beta build emits warnings about optional upstream setup exports. It b
 
 ## GitHub Pages verification
 
-[The live PWA](https://alexanderop.github.io/my-vue-pwa-starter/) is deployed from application commit `04aaeac0c581a07871e1408e12b202c0cca427c4`. [CI and Pages deployment](https://github.com/alexanderop/my-vue-pwa-starter/actions/runs/37576957143) succeeded.
+[The live PWA](https://alexanderop.github.io/my-vue-pwa-starter/) is deployed from application commit `d74ccb3f499fbcf02376c04d02989bb3fc843f74`. [CI and Pages deployment](https://github.com/alexanderop/my-vue-pwa-starter/actions/runs/37578730467) succeeded.
 
-The first live smoke found that a full commit ID overflowed the mobile Settings row. The fix displays a short commit ID and lets the row wrap. A fresh live Chrome session at 360 × 800 with dark mode then passed saved-note persistence, Settings reload, service-worker scope, manifest start URL, offline reload and writes, and viewport overflow checks. No page errors were observed. The deployment smoke now uses this viewport and checks Settings before returning to Notes.
+The earlier initial-deployment smoke found that a full commit ID overflowed the mobile Settings row. The fix displays a short commit ID and lets the row wrap. A fresh live Chrome session at 360 × 800 with dark mode then passed saved-note persistence, Settings reload, service-worker scope, manifest start URL, offline reload and writes, and viewport overflow checks. No page errors were observed. The deployment smoke now uses this viewport and checks Settings before returning to Notes.
 
 - [Deployed Settings](screenshots/deployed-settings.png)
 - [Deployed offline notes](screenshots/deployed-offline.png)
 
 Reproduce with `node scripts/verify-deployment.mjs https://alexanderop.github.io/my-vue-pwa-starter/`. The smoke uses a disposable browser context. The final evidence commit changes documentation and the verification script only; the tested application build stays deployed. Physical phone installation and Safari remain manual checks.
+
+The recovery revision was independently checked on the published site in a fresh 360 × 800 Chrome context. Conflict review and saving a copy, deleted-opener focus, Undo, downloaded backup import, hash-safe skip navigation, and browser Back restoring exactly 700 pixels all passed. The production smoke also passed offline saving and reopening with no page errors. Updated screenshots above show build `d74ccb3`. A malformed backup timestamp was reproduced locally, fixed before deployment, and verified to leave the notebook unchanged.
