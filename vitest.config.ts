@@ -16,6 +16,13 @@ export default defineConfig({
         },
       },
       {
+        test: {
+          name: 'fitness',
+          environment: 'node',
+          include: ['architecture/**/*.test.ts'],
+        },
+      },
+      {
         plugins: [vue(), tailwindcss()],
         optimizeDeps: {
           include: [

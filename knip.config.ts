@@ -13,7 +13,7 @@ export default {
   workspaces: {
     '.': {
       entry: ['scripts/*.mjs', 'e2e/**/*.steps.ts'],
-      project: ['scripts/**', 'e2e/**', '*.config.{js,ts}'],
+      project: ['scripts/**', 'e2e/**', 'architecture/**', '*.config.{js,ts}'],
     },
     'apps/playground': {
       project: ['src/**/*.{ts,vue}'],
