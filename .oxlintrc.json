@@ -1,0 +1,88 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "import", "vue"],
+  "rules": { "import/no-cycle": "error" },
+  "overrides": [
+    {
+      "files": [
+        "apps/playground/src/features/*/domain/**",
+        "apps/playground/src/features/*/ports/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["vue", "vue-router", "@starter/ui"],
+                "message": "Domain and ports stay framework-free."
+              },
+              {
+                "group": ["**/application/**", "**/adapters/**", "**/ui/**"],
+                "message": "Domain and ports must not import outer layers."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": [
+          "error",
+          "window",
+          "document",
+          "navigator",
+          "indexedDB",
+          "localStorage",
+          "crypto",
+          "fetch"
+        ],
+        "no-restricted-properties": [
+          "error",
+          { "object": "Date", "property": "now", "message": "Inject a clock." }
+        ]
+      }
+    },
+    {
+      "files": ["apps/playground/src/features/*/application/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["vue", "**/adapters/**", "**/ui/**"],
+                "message": "Application talks to ports, not adapters or UI."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": [
+          "error",
+          "window",
+          "indexedDB",
+          "localStorage",
+          "crypto",
+          "fetch"
+        ],
+        "no-restricted-properties": [
+          "error",
+          { "object": "Date", "property": "now", "message": "Inject a clock." }
+        ]
+      }
+    },
+    {
+      "files": ["packages/ui/src/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/apps/**", "**/features/**", "valibot"],
+                "message": "packages/ui must not know about the app."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
