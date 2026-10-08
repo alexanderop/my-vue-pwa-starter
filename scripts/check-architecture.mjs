@@ -12,15 +12,18 @@ function files(directory) {
   if (!fs.existsSync(directory)) return []
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const file = path.join(directory, entry.name)
-    return entry.isDirectory()
-      ? files(file)
-      : /\.(ts|vue)$/.test(file)
-        ? [file]
-        : []
+    if (entry.isDirectory()) return files(file)
+    return /\.(ts|vue)$/.test(file) ? [file] : []
   })
 }
 function feature(file) {
   return path.relative(app, file).match(/^features\/([^/]+)\//)?.[1]
+}
+function resolveTarget(file, specifier) {
+  if (specifier.startsWith('.'))
+    return path.resolve(path.dirname(file), specifier)
+  if (specifier === '@starter/ui') return path.join(ui, 'index.ts')
+  return undefined
 }
 function imports(source, file) {
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
@@ -58,11 +61,7 @@ for (const file of [...files(app), ...files(ui)]) {
   const owner = feature(file)
   const pure = /\/features\/[^/]+\/(domain|application|ports)\//.test(file)
   for (const specifier of imports(source, file)) {
-    const target = specifier.startsWith('.')
-      ? path.resolve(path.dirname(file), specifier)
-      : specifier === '@starter/ui'
-        ? path.join(ui, 'index.ts')
-        : undefined
+    const target = resolveTarget(file, specifier)
     const targetOwner = target ? feature(target) : undefined
     const report = (reason) =>
       failures.push(

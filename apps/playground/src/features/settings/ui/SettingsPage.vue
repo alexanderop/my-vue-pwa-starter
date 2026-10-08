@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { matchError } from '@starter/result'
 import type {
@@ -17,7 +17,7 @@ import {
 } from '@lucide/vue'
 import { UiButton, UiCard, UiBadge } from '@starter/ui'
 import type { Theme, AppCapabilities } from '../ports/settings'
-const props = defineProps<{
+const { theme, pwa, service } = defineProps<{
   theme: Theme
   pwa: AppCapabilities
   service: NotesService
@@ -29,7 +29,7 @@ const emit = defineEmits<{
 const backupBusy = ref(false)
 const backupMessage = ref('')
 const backupError = ref('')
-const importFile = ref<HTMLInputElement>()
+const importFile = useTemplateRef<HTMLInputElement>('import-file')
 onBeforeRouteLeave(() => !backupBusy.value)
 function protectBackup(event: BeforeUnloadEvent) {
   if (!backupBusy.value) return
@@ -41,13 +41,14 @@ onUnmounted(() => {
   window.removeEventListener('beforeunload', protectBackup)
   emit('busy-change', false)
 })
-const installPlatform =
-  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-    ? 'ios'
-    : /Android/.test(navigator.userAgent)
-      ? 'android'
-      : 'desktop'
+function detectPlatform() {
+  const touchMac =
+    navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+  if (/iPad|iPhone|iPod/.test(navigator.userAgent) || touchMac) return 'ios'
+  if (/Android/.test(navigator.userAgent)) return 'android'
+  return 'desktop'
+}
+const installPlatform = detectPlatform()
 
 function startBackup() {
   backupBusy.value = true
@@ -91,7 +92,7 @@ function download(json: string) {
 async function exportBackup() {
   startBackup()
   try {
-    ;(await props.service.exportBackup()).match({
+    ;(await service.exportBackup()).match({
       ok: ({ json, count }) => {
         download(json)
         backupMessage.value = `Backup download started: ${plural(count)}, including trash. Keep it somewhere safe.`
@@ -113,7 +114,7 @@ async function importBackup(event: Event) {
   if (!file) return
   startBackup()
   try {
-    ;(await props.service.importBackup(file)).match({
+    ;(await service.importBackup(file)).match({
       ok: (count) => {
         backupMessage.value = `Imported ${plural(count)} as new copies. Existing notes were kept. Trashed notes are in Trash.`
       },
@@ -276,7 +277,7 @@ const themes = [
           >Import backup</UiButton
         >
         <input
-          ref="importFile"
+          ref="import-file"
           class="sr-only"
           type="file"
           accept=".json,application/json"

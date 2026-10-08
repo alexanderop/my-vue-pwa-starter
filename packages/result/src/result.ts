@@ -38,7 +38,7 @@ export type TryContext = {
 /** Context passed to each `Result.tryPromise` attempt and retry decision. */
 export type TryPromiseContext = TryContext & {
   /** Abort signal supplied through the top-level `Result.tryPromise` config. */
-  readonly signal?: AbortSignal;
+  readonly signal?: AbortSignal | undefined;
 };
 
 /** Executes fn, panics if it throws. */

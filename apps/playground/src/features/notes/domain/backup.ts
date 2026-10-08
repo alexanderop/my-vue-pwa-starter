@@ -24,7 +24,7 @@ export type BackupImportError =
   BackupFileTooLarge | BackupUnreadable | InvalidBackup | BackupStorageFailed
 export type BackupExportError = CollectionTooLarge | BackupStorageFailed
 
-export const backupSchema = v.object({
+const backupSchema = v.object({
   format: v.literal('fieldnotes'),
   version: v.literal(1),
   notes: v.pipe(v.array(noteSchema), v.maxLength(backupLimits.notes)),

@@ -34,7 +34,7 @@ export const noteSchema = v.object({
   pinned: v.boolean(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
-  deletedAt: v.optional(timestampSchema),
+  deletedAt: v.exactOptional(timestampSchema),
   revision: v.pipe(v.number(), v.integer(), v.minValue(1)),
 })
 

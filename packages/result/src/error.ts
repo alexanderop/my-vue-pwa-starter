@@ -412,10 +412,10 @@ export type ResultCodecIssue = StandardSchemaV1.Issue;
 export class ResultDeserializationError extends TaggedError("ResultDeserializationError")<{
   message: string;
   value: unknown;
-  issues?: ReadonlyArray<ResultCodecIssue>;
+  issues?: ReadonlyArray<ResultCodecIssue> | undefined;
 }> {
   /** Creates a deserialization error for a rejected value and optional validation issues. */
-  constructor(args: { value: unknown; issues?: ReadonlyArray<ResultCodecIssue> }) {
+  constructor(args: { value: unknown; issues?: ReadonlyArray<ResultCodecIssue> | undefined }) {
     super({
       message: args.issues
         ? "Failed to deserialize Result payload"
@@ -438,10 +438,10 @@ export class ResultDeserializationError extends TaggedError("ResultDeserializati
 export class ResultSerializationError extends TaggedError("ResultSerializationError")<{
   message: string;
   value: unknown;
-  issues?: ReadonlyArray<ResultCodecIssue>;
+  issues?: ReadonlyArray<ResultCodecIssue> | undefined;
 }> {
   /** Creates a serialization error for a rejected value and optional validation issues. */
-  constructor(args: { value: unknown; issues?: ReadonlyArray<ResultCodecIssue> }) {
+  constructor(args: { value: unknown; issues?: ReadonlyArray<ResultCodecIssue> | undefined }) {
     super({
       message: "Failed to serialize Result payload",
       value: args.value,

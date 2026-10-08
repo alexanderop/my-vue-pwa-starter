@@ -1,4 +1,4 @@
-import fc from 'fast-check'
+import * as fc from 'fast-check'
 import * as v from 'valibot'
 import { describe, expect, it } from 'vitest'
 import { backupLimits, parseBackup, serializeBackup } from './backup'

@@ -1,14 +1,18 @@
 <script setup lang="ts">
-withDefaults(
-  defineProps<{
-    variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
-    size?: 'sm' | 'md' | 'icon'
-    loading?: boolean
-    disabled?: boolean
-    type?: 'button' | 'submit' | 'reset'
-  }>(),
-  { variant: 'primary', size: 'md', type: 'button' },
-)
+const {
+  variant = 'primary',
+  size = 'md',
+  loading = false,
+  disabled = false,
+  type = 'button',
+} = defineProps<{
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
+  size?: 'sm' | 'md' | 'icon'
+  loading?: boolean
+  disabled?: boolean
+  type?: 'button' | 'submit' | 'reset'
+}>()
+defineSlots<{ default(): unknown }>()
 </script>
 <template>
   <button

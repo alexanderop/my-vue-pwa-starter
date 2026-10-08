@@ -34,12 +34,22 @@ describe('given the feature folders', () => {
     expect(names.length).toBeGreaterThan(0)
   })
 
-  describe.each(names)('when checking %s', (name) => {
-    const check = featuresWithoutEntry.has(name) ? it.fails : it
-    check('should expose a public index.ts', () => {
-      expect(existsSync(`${root}${features}/${name}/index.ts`)).toBe(true)
-    })
-  })
+  const hasEntry = (name: string) =>
+    existsSync(`${root}${features}/${name}/index.ts`)
+
+  it.each(names.filter((name) => !featuresWithoutEntry.has(name)))(
+    'should expose a public index.ts in %s',
+    (name) => {
+      expect(hasEntry(name)).toBe(true)
+    },
+  )
+
+  it.fails.each([...featuresWithoutEntry])(
+    'should expose a public index.ts in %s (known violation)',
+    (name) => {
+      expect(hasEntry(name)).toBe(true)
+    },
+  )
 })
 
 describe('given the app components', () => {
@@ -49,12 +59,21 @@ describe('given the app components', () => {
     expect(components.length).toBeGreaterThan(0)
   })
 
-  describe.each(components)('when checking %s', (file) => {
-    const check = oversizedComponents.has(file) ? it.fails : it
-    check('should stay under 300 lines', () => {
-      expect(read(file).split('\n').length).toBeLessThan(300)
-    })
-  })
+  const lineCount = (file: string) => read(file).split('\n').length
+
+  it.each(components.filter((file) => !oversizedComponents.has(file)))(
+    'should keep %s under 300 lines',
+    (file) => {
+      expect(lineCount(file)).toBeLessThan(300)
+    },
+  )
+
+  it.fails.each([...oversizedComponents])(
+    'should keep %s under 300 lines (known violation)',
+    (file) => {
+      expect(lineCount(file)).toBeLessThan(300)
+    },
+  )
 })
 
 describe('given the persistence adapters', () => {

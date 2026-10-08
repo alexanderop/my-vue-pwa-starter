@@ -1,7 +1,7 @@
-import fc from 'fast-check'
-import { describe, expect, it, vi } from 'vitest'
-import { createNotesService } from './createNotesService'
 import { Result } from '@starter/result'
+import * as fc from 'fast-check'
+import { describe, expect, it, vi } from 'vitest'
+import { createNotesService, type NotesService } from './createNotesService'
 import type { Note } from '../domain/note'
 import type { NoteRepository } from '../ports/NoteRepository'
 
@@ -46,6 +46,26 @@ function file(contents: unknown) {
     text: async () => text,
   }
 }
+
+type Entry = Readonly<{
+  title: string
+  body?: string
+  pinned?: boolean
+  trashed: boolean
+}>
+
+async function seed(service: NotesService, entries: readonly Entry[]) {
+  for (const { title, body = '', pinned = false, trashed } of entries) {
+    const created = value(await service.create({ title, body }))
+    const kept = pinned
+      ? value(await service.setPinned(created, true))
+      : created
+    if (trashed) value(await service.trash(kept))
+  }
+}
+
+const pinnedThenNewest = (a: Note, b: Note) =>
+  Number(b.pinned) - Number(a.pinned) || b.updatedAt - a.updatedAt
 
 function tagOf(result: Result<unknown, { _tag: string }>) {
   return result.isErr() ? result.error._tag : 'ok'
@@ -152,97 +172,97 @@ describe('notes service', () => {
       error: { kind: 'conflict', message: 'Changed elsewhere' },
     })
   })
-})
 
-it('keeps trashed notes recoverable and exports them', async () => {
-  const { service } = fixture()
-  const original = value(
-    await service.create({ title: 'Keep me', body: 'Draft' }),
-  )
-  const deleted = value(await service.trash(original))
-  expect(value(await service.list())).toEqual([])
-  expect(value(await service.listTrash())).toEqual([deleted])
-  expect(value(await service.exportData())).toEqual([deleted])
-  const restored = value(await service.restore(deleted))
-  expect(restored.deletedAt).toBeUndefined()
-  expect(restored.revision).toBe(3)
-  expect(value(await service.list())).toEqual([restored])
-})
-it('imports validated backups as copies while preserving originals and rejects unsupported versions', async () => {
-  const { service } = fixture()
-  const original = value(
-    await service.create({ title: 'Original', body: 'Keep' }),
-  )
-  const backup = { format: 'fieldnotes', version: 1, notes: [original] }
-  expect(value(await service.importBackup(file(backup)))).toBe(1)
-  const all = value(await service.exportData())
-  expect(all).toHaveLength(2)
-  expect(all[0]).toEqual(original)
-  expect(all[1]?.id).not.toBe(original.id)
-  expect(
-    tagOf(await service.importBackup(file({ ...backup, version: 2 }))),
-  ).toBe('InvalidBackup')
-  expect(
-    tagOf(
-      await service.importBackup(
-        file({ ...backup, notes: [original, { ...original, title: 17 }] }),
-      ),
-    ),
-  ).toBe('InvalidBackup')
-  expect(value(await service.exportData())).toHaveLength(2)
-})
-
-it.each(['createdAt', 'updatedAt', 'deletedAt'] as const)(
-  'rejects an out-of-range %s in a backup before any write',
-  async (field) => {
-    const { service, repository } = fixture()
+  it('keeps trashed notes recoverable and exports them', async () => {
+    const { service } = fixture()
     const original = value(
-      await service.create({ title: 'Keep', body: 'Existing note' }),
+      await service.create({ title: 'Keep me', body: 'Draft' }),
     )
-    const write = vi.spyOn(repository, 'addMany')
-    for (const timestamp of [8_640_000_000_000_001, 1e300]) {
-      expect(
-        tagOf(
-          await service.importBackup(
-            file({
-              format: 'fieldnotes',
-              version: 1,
-              notes: [original, { ...original, [field]: timestamp }],
-            }),
-          ),
+    const deleted = value(await service.trash(original))
+    expect(value(await service.list())).toEqual([])
+    expect(value(await service.listTrash())).toEqual([deleted])
+    expect(value(await service.exportData())).toEqual([deleted])
+    const restored = value(await service.restore(deleted))
+    expect(restored.deletedAt).toBeUndefined()
+    expect(restored.revision).toBe(3)
+    expect(value(await service.list())).toEqual([restored])
+  })
+  it('imports validated backups as copies while preserving originals and rejects unsupported versions', async () => {
+    const { service } = fixture()
+    const original = value(
+      await service.create({ title: 'Original', body: 'Keep' }),
+    )
+    const backup = { format: 'fieldnotes', version: 1, notes: [original] }
+    expect(value(await service.importBackup(file(backup)))).toBe(1)
+    const all = value(await service.exportData())
+    expect(all).toHaveLength(2)
+    expect(all[0]).toEqual(original)
+    expect(all[1]?.id).not.toBe(original.id)
+    expect(
+      tagOf(await service.importBackup(file({ ...backup, version: 2 }))),
+    ).toBe('InvalidBackup')
+    expect(
+      tagOf(
+        await service.importBackup(
+          file({ ...backup, notes: [original, { ...original, title: 17 }] }),
         ),
-      ).toBe('InvalidBackup')
-    }
-    expect(write).not.toHaveBeenCalled()
-    expect(value(await service.exportData())).toEqual([original])
-  },
-)
-
-it('accepts the inclusive JavaScript Date timestamp limit', async () => {
-  const { service } = fixture()
-  const original = value(
-    await service.create({ title: 'Date limit', body: '' }),
-  )
-  const limit = 8_640_000_000_000_000
-  expect(
-    value(
-      await service.importBackup(
-        file({
-          format: 'fieldnotes',
-          version: 1,
-          notes: [
-            {
-              ...original,
-              createdAt: limit,
-              updatedAt: limit,
-              deletedAt: limit,
-            },
-          ],
-        }),
       ),
-    ),
-  ).toBe(1)
-  expect(() => new Date(limit).toISOString()).not.toThrow()
+    ).toBe('InvalidBackup')
+    expect(value(await service.exportData())).toHaveLength(2)
+  })
+
+  it.each(['createdAt', 'updatedAt', 'deletedAt'] as const)(
+    'rejects an out-of-range %s in a backup before any write',
+    async (field) => {
+      const { service, repository } = fixture()
+      const original = value(
+        await service.create({ title: 'Keep', body: 'Existing note' }),
+      )
+      const write = vi.spyOn(repository, 'addMany')
+      for (const timestamp of [8_640_000_000_000_001, 1e300]) {
+        expect(
+          tagOf(
+            await service.importBackup(
+              file({
+                format: 'fieldnotes',
+                version: 1,
+                notes: [original, { ...original, [field]: timestamp }],
+              }),
+            ),
+          ),
+        ).toBe('InvalidBackup')
+      }
+      expect(write).not.toHaveBeenCalled()
+      expect(value(await service.exportData())).toEqual([original])
+    },
+  )
+
+  it('accepts the inclusive JavaScript Date timestamp limit', async () => {
+    const { service } = fixture()
+    const original = value(
+      await service.create({ title: 'Date limit', body: '' }),
+    )
+    const limit = 8_640_000_000_000_000
+    expect(
+      value(
+        await service.importBackup(
+          file({
+            format: 'fieldnotes',
+            version: 1,
+            notes: [
+              {
+                ...original,
+                createdAt: limit,
+                updatedAt: limit,
+                deletedAt: limit,
+              },
+            ],
+          }),
+        ),
+      ),
+    ).toBe(1)
+    expect(() => new Date(limit).toISOString()).not.toThrow()
+  })
 })
 
 describe('given any mix of pinned, unpinned, and trashed notes', () => {
@@ -260,29 +280,13 @@ describe('given any mix of pinned, unpinned, and trashed notes', () => {
     await fc.assert(
       fc.asyncProperty(plan, async (entries) => {
         const { service } = fixture()
-        for (const entry of entries) {
-          const created = value(
-            await service.create({ title: entry.title, body: '' }),
-          )
-          const pinned = entry.pinned
-            ? value(await service.setPinned(created, true))
-            : created
-          if (entry.trashed) value(await service.trash(pinned))
-        }
+        await seed(service, entries)
         const listed = value(await service.list())
         expect(listed).toHaveLength(
           entries.filter((entry) => !entry.trashed).length,
         )
         expect(listed.every((note) => note.deletedAt === undefined)).toBe(true)
-        for (const [previous, next] of listed
-          .slice(1)
-          .map((note, index) => [listed[index]!, note] as const)) {
-          expect(Number(previous.pinned)).toBeGreaterThanOrEqual(
-            Number(next.pinned),
-          )
-          if (previous.pinned === next.pinned)
-            expect(previous.updatedAt).toBeGreaterThanOrEqual(next.updatedAt)
-        }
+        expect(listed).toEqual(listed.toSorted(pinnedThenNewest))
       }),
     )
   })
@@ -296,7 +300,7 @@ describe('given a backup file over 10 MB', () => {
         async (size) => {
           const { service, repository } = fixture()
           const write = vi.spyOn(repository, 'addMany')
-          const text = vi.fn(async () => '{}')
+          const text = vi.fn<() => Promise<string>>(async () => '{}')
           const result = await service.importBackup({ size, text })
           expect(tagOf(result)).toBe('BackupFileTooLarge')
           expect(text).not.toHaveBeenCalled()
@@ -329,13 +333,19 @@ describe('given storage that fails during a backup', () => {
       file({ format: 'fieldnotes', version: 1, notes: [] }),
     )
     const exported = await service.exportBackup()
-    expect(imported.isErr() && imported.error).toMatchObject({
-      _tag: 'BackupStorageFailed',
-      failure: { kind: 'storage' },
+    expect(imported).toMatchObject({
+      status: 'error',
+      error: expect.objectContaining({
+        _tag: 'BackupStorageFailed',
+        failure: expect.objectContaining({ kind: 'storage' }),
+      }),
     })
-    expect(exported.isErr() && exported.error).toMatchObject({
-      _tag: 'BackupStorageFailed',
-      failure: { kind: 'corrupt', message: 'Unreadable rows' },
+    expect(exported).toMatchObject({
+      status: 'error',
+      error: expect.objectContaining({
+        _tag: 'BackupStorageFailed',
+        failure: { kind: 'corrupt', message: 'Unreadable rows' },
+      }),
     })
   })
 })
@@ -352,10 +362,7 @@ describe('given any notebook', () => {
     await fc.assert(
       fc.asyncProperty(fc.array(entry, { maxLength: 10 }), async (entries) => {
         const source = fixture('source').service
-        for (const { title, body, trashed } of entries) {
-          const created = value(await source.create({ title, body }))
-          if (trashed) value(await source.trash(created))
-        }
+        await seed(source, entries)
         const backup = value(await source.exportBackup())
         expect(backup.count).toBe(entries.length)
 

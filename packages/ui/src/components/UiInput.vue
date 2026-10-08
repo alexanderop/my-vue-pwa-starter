@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { computed, useId } from 'vue'
 defineOptions({ inheritAttrs: false })
-const props = defineProps<{ label: string; id?: string; error?: string }>()
+const { label, id, error } = defineProps<{
+  label: string
+  id?: string
+  error?: string | undefined
+}>()
 const model = defineModel<string>({ default: '' })
 const generatedId = useId()
-const inputId = computed(() => props.id ?? generatedId)
+const inputId = computed(() => id ?? generatedId)
 </script>
 <template>
   <div class="ui-field">

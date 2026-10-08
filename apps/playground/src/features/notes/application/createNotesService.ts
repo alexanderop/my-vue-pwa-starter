@@ -19,7 +19,7 @@ import {
 } from '../domain/note'
 import type { NoteRepository } from '../ports/NoteRepository'
 
-export interface NotesService {
+export type NotesService = {
   exportData(): Promise<NoteResult<readonly Note[]>>
   exportBackup(): Promise<
     Result<{ json: string; count: number }, BackupExportError>
@@ -40,6 +40,21 @@ const storageError: NoteError = {
   message: 'Your notes could not be saved or loaded. Please try again.',
 }
 
+async function safely<T>(
+  operation: () => Promise<NoteResult<T>>,
+): Promise<NoteResult<T>> {
+  const attempted = await Result.tryPromise({
+    try: operation,
+    catch: () => storageError,
+  })
+  return Result.flatten(attempted)
+}
+async function stored<T>(operation: () => Promise<NoteResult<T>>) {
+  return (await safely(operation)).mapError(
+    (failure) => new BackupStorageFailed({ failure }),
+  )
+}
+
 export function createNotesService({
   repository,
   now,
@@ -49,21 +64,6 @@ export function createNotesService({
   now: () => number
   newId: () => string
 }): NotesService {
-  async function safely<T>(
-    operation: () => Promise<NoteResult<T>>,
-  ): Promise<NoteResult<T>> {
-    const attempted = await Result.tryPromise({
-      try: operation,
-      catch: () => storageError,
-    })
-    return Result.flatten(attempted)
-  }
-  async function stored<T>(operation: () => Promise<NoteResult<T>>) {
-    return (await safely(operation)).mapError(
-      (failure) => new BackupStorageFailed({ failure }),
-    )
-  }
-
   const changeTrash = (note: Note, deletedAt: number | undefined) =>
     safely(() => {
       const changed = {
@@ -115,7 +115,7 @@ export function createNotesService({
         (await repository.list()).map((notes) =>
           notes
             .filter((note) => note.deletedAt === undefined)
-            .sort(
+            .toSorted(
               (a, b) =>
                 Number(b.pinned) - Number(a.pinned) ||
                 b.updatedAt - a.updatedAt ||

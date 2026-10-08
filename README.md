@@ -105,7 +105,7 @@ Backup import and export show the full pattern. `features/notes/domain/backup.ts
 
 ## Credits
 
-`packages/result` is a verbatim copy of [better-result](https://github.com/dmmulroy/better-result) 3.0.1 by [Dillon Mulroy](https://github.com/dmmulroy), including its test suite and MIT license. The library has no runtime dependencies; it is vendored so the starter owns and reviews the code it ships. See [packages/result/README.md](packages/result/README.md) for the upstream commit and update steps.
+`packages/result` is a copy of [better-result](https://github.com/dmmulroy/better-result) 3.0.1 by [Dillon Mulroy](https://github.com/dmmulroy), including its test suite and MIT license. The library has no runtime dependencies; it is vendored so the starter owns and reviews the code it ships. See [packages/result/README.md](packages/result/README.md) for the upstream commit and update steps.
 
 ## Design reference
 

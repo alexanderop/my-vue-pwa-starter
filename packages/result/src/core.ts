@@ -184,7 +184,10 @@ type TapBothAsyncHandlersFor<R> = {
  */
 export class Ok<A, E = never> {
   readonly status = "ok" as const;
-  constructor(readonly value: A) {}
+  readonly value: A;
+  constructor(value: A) {
+    this.value = value;
+  }
 
   /** Returns true, narrowing Result to Ok. */
   isOk(): this is Ok<A, E> {
@@ -536,7 +539,10 @@ export class Ok<A, E = never> {
  */
 export class Err<T, E> {
   readonly status = "error" as const;
-  constructor(readonly error: E) {}
+  readonly error: E;
+  constructor(error: E) {
+    this.error = error;
+  }
 
   /** Returns false, narrowing Result to Ok. */
   isOk(): this is Ok<never, E> {
