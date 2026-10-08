@@ -13,3 +13,5 @@ coverage/
 .test-builds/
 
 .vitest/
+
+.verify/

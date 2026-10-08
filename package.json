@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@10.28.2",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.18.0"
   },
   "scripts": {
     "dev": "pnpm --filter @starter/playground dev",
@@ -13,7 +13,7 @@
     "build:app": "pnpm --filter @starter/playground build",
     "build:ui": "pnpm --filter @starter/ui build",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p packages/result/tsconfig.json",
-    "lint": "oxlint --type-aware --report-unused-disable-directives-severity=error apps packages scripts e2e architecture && eslint . && pnpm check:architecture && pnpm check:dead-code",
+    "lint": "oxlint --type-aware --report-unused-disable-directives-severity=error apps packages scripts e2e architecture .claude/skills && eslint . && pnpm check:architecture && pnpm check:dead-code",
     "check:architecture": "node scripts/test-architecture.mjs && node scripts/check-architecture.mjs",
     "check:dead-code": "knip --no-progress",
     "format": "prettier --write .",

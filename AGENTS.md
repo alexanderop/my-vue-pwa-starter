@@ -25,6 +25,8 @@ Prefer native Vue reactivity and ordinary function parameters. Add dependencies 
 
 ## Verification
 
+Prove UI, storage, routing and service-worker changes in the running production app, not only in tests. Use the `verify-vue-pwa-starter` skill (`.claude/skills/verify-vue-pwa-starter/`). `node .claude/skills/verify-vue-pwa-starter/control.ts help` lists its commands: `start`, `doctor`, `seed <scenario>`, driving by ARIA role and name, `snapshot`, `screenshot`. Attach the `.verify/evidence/` paths to your report. When you change user-facing behavior, update the matching file in its `features/` map in the same change.
+
 Choose the smallest test layer that exposes the failure. Use real IndexedDB in browser adapter tests. Keep production service workers real in offline and update journeys. Do not replace the mechanism a test claims to prove.
 
 Keep formatting in Prettier and Vue semantics in ESLint. The architecture check includes forbidden-import fixtures to verify the check itself.

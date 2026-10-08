@@ -3,10 +3,13 @@ import { createServer } from 'node:http'
 import { readFileSync, existsSync } from 'node:fs'
 import { resolve, extname, sep } from 'node:path'
 
+const port = Number(process.env.SERVE_PORT ?? 42785)
+const awayPort = Number(process.env.SERVE_AWAY_PORT ?? 42786)
+const buildRoot = process.env.SERVE_BUILD_ROOT ?? '.test-builds'
 const versions = ['1', '2']
 const builds = new Map()
 for (const version of versions) {
-  const directory = resolve('.test-builds', `e2e-${version}`)
+  const directory = resolve(buildRoot, `e2e-${version}`)
   const build = spawnSync(
     'pnpm',
     [
@@ -77,7 +80,7 @@ function resolveFile(pathname) {
   return { file }
 }
 const server = createServer((request, response) => {
-  const url = new URL(request.url ?? '/', 'http://127.0.0.1:42785')
+  const url = new URL(request.url ?? '/', `http://127.0.0.1:${port}`)
   if (handleTestRoute(request, url, response)) return
   if (request.method !== 'GET') {
     sendStatus(response, 405)
@@ -99,8 +102,8 @@ const awayServer = createServer((_request, response) => {
     '<!doctype html><title>Another page</title><h1>Another page</h1>',
   )
 })
-awayServer.listen(42786, '127.0.0.1')
-server.listen(42785, '127.0.0.1', () =>
+awayServer.listen(awayPort, '127.0.0.1')
+server.listen(port, '127.0.0.1', () =>
   console.log('Two-version production PWA server ready'),
 )
 for (const signal of ['SIGINT', 'SIGTERM'])

@@ -363,6 +363,7 @@ onUnmounted(() => {
                 v-if="showingTrash"
                 size="sm"
                 variant="secondary"
+                :aria-label="`Restore ${note.title}`"
                 @click="restore(note)"
                 >Restore</UiButton
               >

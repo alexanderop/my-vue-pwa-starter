@@ -66,7 +66,9 @@ Then(
 Then('I can restore the note from Trash after reloading', async ({ page }) => {
   await page.reload()
   await page.getByRole('button', { name: 'Trash (1)', exact: true }).click()
-  await page.getByRole('button', { name: 'Restore', exact: true }).click()
+  await page
+    .getByRole('button', { name: 'Restore Keep me', exact: true })
+    .click()
   await page.getByRole('button', { name: 'Back to notes', exact: true }).click()
   await expect(
     page.getByRole('heading', { name: 'Keep me', exact: true }),

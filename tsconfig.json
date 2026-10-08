@@ -43,7 +43,8 @@
     "packages/**/*.vue",
     "*.config.ts",
     "e2e/**/*.ts",
-    "architecture/**/*.ts"
+    "architecture/**/*.ts",
+    ".claude/skills/**/*.ts"
   ],
   "exclude": [
     "packages/result/src/**/*.test.ts",

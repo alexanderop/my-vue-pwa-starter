@@ -6,7 +6,7 @@ A Vue PWA starter with your own UI library, Histoire, and feature-based ports an
 
 ## Run locally
 
-Use Node.js 22.12 or newer and pnpm 10.28.2.
+Use Node.js 22.18 or newer and pnpm 10.28.2.
 
 ```sh
 pnpm install
