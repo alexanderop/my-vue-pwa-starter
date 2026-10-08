@@ -9,6 +9,7 @@
     "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort"
   },
   "dependencies": {
+    "@starter/composables": "workspace:*",
     "@starter/result": "workspace:*",
     "@starter/ui": "workspace:*",
     "valibot": "1.5.0",

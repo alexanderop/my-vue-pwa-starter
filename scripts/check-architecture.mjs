@@ -6,6 +6,7 @@ import { parse } from '@vue/compiler-sfc'
 const root = process.cwd()
 const app = path.resolve(root, 'apps/playground/src')
 const ui = path.resolve(root, 'packages/ui/src')
+const composables = path.resolve(root, 'packages/composables/src')
 const failures = []
 
 function files(directory) {
@@ -23,6 +24,8 @@ function resolveTarget(file, specifier) {
   if (specifier.startsWith('.'))
     return path.resolve(path.dirname(file), specifier)
   if (specifier === '@starter/ui') return path.join(ui, 'index.ts')
+  if (specifier === '@starter/composables')
+    return path.join(composables, 'index.ts')
   return undefined
 }
 function imports(source, file) {
@@ -47,7 +50,7 @@ function imports(source, file) {
   visit(tree)
   return values
 }
-for (const file of [...files(app), ...files(ui)]) {
+for (const file of [...files(app), ...files(ui), ...files(composables)]) {
   if (/\.(test|story)\./.test(file)) continue
   const content = fs.readFileSync(file, 'utf8')
   const source = file.endsWith('.vue')
@@ -72,6 +75,13 @@ for (const file of [...files(app), ...files(ui)]) {
       (specifier.includes('apps/') || target?.startsWith(app))
     )
       report('UI package cannot depend on the application')
+    if (
+      file.startsWith(composables) &&
+      ((!target &&
+        !['vue', 'valibot', '@starter/result'].includes(specifier)) ||
+        (target && !target.startsWith(composables)))
+    )
+      report('Composables depend only on Vue, Valibot, and Result')
     if (
       owner &&
       targetOwner &&

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
+import { onUnmounted, ref, useTemplateRef } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
-import { matchError } from '@starter/result'
+import { matchError, type Result } from '@starter/result'
+import { useEventListener, type StorageWriteError } from '@starter/composables'
 import type {
   BackupExportError,
   BackupImportError,
@@ -17,13 +18,13 @@ import {
 } from '@lucide/vue'
 import { UiButton, UiCard, UiBadge } from '@starter/ui'
 import type { Theme, AppCapabilities } from '../ports/settings'
-const { theme, pwa, service } = defineProps<{
+const { theme, setTheme, pwa, service } = defineProps<{
   theme: Theme
+  setTheme: (theme: Theme) => Result<void, StorageWriteError>
   pwa: AppCapabilities
   service: NotesService
 }>()
 const emit = defineEmits<{
-  'update:theme': [theme: Theme]
   'busy-change': [busy: boolean]
 }>()
 const backupBusy = ref(false)
@@ -36,11 +37,23 @@ function protectBackup(event: BeforeUnloadEvent) {
   event.preventDefault()
   event.returnValue = ''
 }
-onMounted(() => window.addEventListener('beforeunload', protectBackup))
+useEventListener(window, 'beforeunload', protectBackup)
 onUnmounted(() => {
-  window.removeEventListener('beforeunload', protectBackup)
   emit('busy-change', false)
 })
+const themeMessage = ref('')
+function chooseTheme(next: Theme) {
+  themeMessage.value = setTheme(next).match({
+    ok: () => '',
+    err: (error) =>
+      matchError(error, {
+        StorageQuotaExceeded: () =>
+          'Storage is full. This theme lasts until you close the app.',
+        StorageUnavailable: () =>
+          'This browser blocks saving. This theme lasts until you close the app.',
+      }),
+  })
+}
 function detectPlatform() {
   const touchMac =
     navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
@@ -161,12 +174,15 @@ const themes = [
             name="theme"
             :value="item.value"
             :checked="theme === item.value"
-            @change="emit('update:theme', item.value)"
+            @change="chooseTheme(item.value)"
           /><component :is="item.icon" :size="22" aria-hidden="true" /><span>{{
             item.label
           }}</span></label
         >
-      </fieldset></UiCard
+      </fieldset>
+      <p role="status" class="muted" data-testid="theme-status">
+        {{ themeMessage }}
+      </p></UiCard
     >
     <UiCard class="settings-card"
       ><div class="settings-row">
@@ -248,7 +264,7 @@ const themes = [
           updates</UiButton
         >
       </div>
-      <p v-if="pwa.status.value" role="status" class="muted">
+      <p role="status" class="muted">
         {{ pwa.status.value }}
       </p></UiCard
     >
@@ -287,10 +303,13 @@ const themes = [
           @change="importBackup"
         />
       </div>
-      <p v-if="backupBusy" role="status">
-        Working on your backup. Keep this page open until it finishes…
+      <p role="status" data-testid="backup-status">
+        {{
+          backupBusy
+            ? 'Working on your backup. Keep this page open until it finishes…'
+            : backupMessage
+        }}
       </p>
-      <p v-if="backupMessage" role="status">{{ backupMessage }}</p>
       <p v-if="backupError" role="alert" class="backup-error">
         {{ backupError }}
       </p>

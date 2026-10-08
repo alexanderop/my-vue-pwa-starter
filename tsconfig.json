@@ -33,7 +33,8 @@
     ],
     "paths": {
       "@starter/ui": ["./packages/ui/src/index.ts"],
-      "@starter/result": ["./packages/result/src/index.ts"]
+      "@starter/result": ["./packages/result/src/index.ts"],
+      "@starter/composables": ["./packages/composables/src/index.ts"]
     }
   },
   "include": [
@@ -42,6 +43,7 @@
     "packages/**/*.ts",
     "packages/**/*.vue",
     "*.config.ts",
+    "vitest.commands.ts",
     "e2e/**/*.ts",
     "architecture/**/*.ts"
   ],

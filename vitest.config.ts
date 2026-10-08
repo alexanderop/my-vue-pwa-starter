@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import { playwright } from '@vitest/browser-playwright'
 import { fileURLToPath } from 'node:url'
+import { goOfflineFor } from './vitest.commands'
 
 export default defineConfig({
   test: {
@@ -55,6 +56,7 @@ export default defineConfig({
             provider: playwright({ launchOptions: { channel: 'chrome' } }),
             instances: [{ browser: 'chromium' }],
             headless: true,
+            commands: { goOfflineFor },
           },
         },
       },

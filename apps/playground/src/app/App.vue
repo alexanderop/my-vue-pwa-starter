@@ -6,16 +6,32 @@ import { AppShell, AppNavigation, UiButton, UiBadge } from '@starter/ui'
 import type { NotesService } from '../features/notes'
 import { usePwa } from '../platform/pwa/usePwa'
 import { useTheme } from './useTheme'
-defineProps<{ notes: NotesService }>()
+const { notes } = defineProps<{ notes: NotesService }>()
 const route = useRoute()
 const router = useRouter()
 const busy = ref(false)
-const theme = useTheme()
+const { theme, setTheme } = useTheme()
 const pwa = usePwa(busy)
 const items = [
   { id: 'notes', label: 'Notes', icon: NotebookPen },
   { id: 'settings', label: 'Settings', icon: Settings2 },
 ]
+// Each route receives only the props it declares.
+const pageProps = computed(() =>
+  route.name === 'settings'
+    ? {
+        service: notes,
+        theme: theme.value,
+        setTheme,
+        pwa,
+      }
+    : {
+        service: notes,
+        onBusyChange: (value: boolean) => {
+          busy.value = value
+        },
+      },
+)
 const active = computed(() => String(route.name ?? 'notes'))
 function navigate(id: string) {
   if (route.name === id) {
@@ -53,13 +69,7 @@ function navigate(id: string) {
         @update:model-value="navigate"
     /></template>
     <RouterView v-slot="{ Component }"
-      ><component
-        :is="Component"
-        :service="notes"
-        :theme="theme"
-        :pwa="pwa"
-        @busy-change="busy = $event"
-        @update:theme="theme = $event"
+      ><component :is="Component" v-bind="pageProps"
     /></RouterView>
     <footer class="page-footer">
       <span>A little space for what matters.</span

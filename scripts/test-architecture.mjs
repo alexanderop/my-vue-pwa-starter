@@ -54,6 +54,21 @@ try {
       "import '../../../apps/playground/src/features/notes/domain/note'",
       'UI package cannot depend',
     ],
+    [
+      'packages/composables/src/ui.ts',
+      "import '@starter/ui'",
+      'Composables depend only',
+    ],
+    [
+      'packages/composables/src/app.ts',
+      "import '../../../apps/playground/src/features/notes/domain/note'",
+      'Composables depend only',
+    ],
+    [
+      'apps/playground/src/features/notes/domain/composables.ts',
+      "import '@starter/composables'",
+      'Core code depends only',
+    ],
   ]
   for (const [file, source, message] of violations) {
     write(file, source)
@@ -66,7 +81,7 @@ try {
     rmSync(resolve(directory, file))
   }
   console.log(
-    'Architecture gate rejected all six forbidden imports and globals',
+    'Architecture gate rejected all nine forbidden imports and globals',
   )
 } finally {
   rmSync(directory, { recursive: true, force: true })

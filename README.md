@@ -27,11 +27,12 @@ Open http://localhost:6006. Stories use the same components as the application.
 
 ## Workspace
 
-| Package           | Responsibility                                                               |
-| ----------------- | ---------------------------------------------------------------------------- |
-| `apps/playground` | Fieldnotes PWA, feature composition, native IndexedDB, installation, updates |
-| `packages/ui`     | `@starter/ui`, design tokens, reusable Vue components, Histoire stories      |
-| `packages/result` | `@starter/result`, typed `Result` values vendored from better-result         |
+| Package                | Responsibility                                                                                                                                  |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/playground`      | Fieldnotes PWA, feature composition, native IndexedDB, installation, updates                                                                    |
+| `packages/ui`          | `@starter/ui`, design tokens, reusable Vue components, Histoire stories                                                                         |
+| `packages/result`      | `@starter/result`, typed `Result` values vendored from better-result                                                                            |
+| `packages/composables` | `@starter/composables`, small dependency-free Vue composables for events, media queries, connectivity, visibility, and validated `localStorage` |
 
 The UI package exports Vue source for Vite consumers within this workspace. It is private and does not require an npm release. Applications import components from `@starter/ui` and styles from `@starter/ui/styles.css`.
 
@@ -106,6 +107,8 @@ Backup import and export show the full pattern. `features/notes/domain/backup.ts
 ## Credits
 
 `packages/result` is a copy of [better-result](https://github.com/dmmulroy/better-result) 3.0.1 by [Dillon Mulroy](https://github.com/dmmulroy), including its test suite and MIT license. The library has no runtime dependencies; it is vendored so the starter owns and reviews the code it ships. See [packages/result/README.md](packages/result/README.md) for the upstream commit and update steps.
+
+`packages/composables` contains small composables adapted from [VueUse](https://github.com/vueuse/vueuse) (MIT, Anthony Fu and contributors), reduced to a client-only PWA and returning `Result` values where storage can fail.
 
 ## Design reference
 

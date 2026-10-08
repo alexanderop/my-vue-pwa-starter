@@ -1,4 +1,9 @@
-import { computed, onMounted, onUnmounted, ref, type Ref } from 'vue'
+import { computed, effectScope, onMounted, ref, type Ref } from 'vue'
+import {
+  useEventListener,
+  useMediaQuery,
+  useOnline,
+} from '@starter/composables'
 
 type InstallPrompt = Event & {
   prompt(): Promise<void>
@@ -10,26 +15,23 @@ function isInstallPrompt(event: Event): event is InstallPrompt {
 }
 
 export function usePwa(busy: Ref<boolean>) {
-  const online = ref(navigator.onLine)
+  const online = useOnline()
   const offlineReady = ref(false)
   const updateState = ref<'current' | 'waiting' | 'reload'>('current')
   const deferred = ref(false)
   const updating = ref(false)
   const checking = ref(false)
   const status = ref('')
-  const installed = ref(window.matchMedia('(display-mode: standalone)').matches)
+  const standalone = useMediaQuery('(display-mode: standalone)')
+  const accepted = ref(false)
+  const installed = computed(() => standalone.value || accepted.value)
   const prompt = ref<InstallPrompt | null>(null)
   let registration: ServiceWorkerRegistration | undefined
   let controller =
     'serviceWorker' in navigator ? navigator.serviceWorker.controller : null
   let approved = false
-  let disposed = false
-  const cleanups: (() => void)[] = []
-
-  function listen(target: EventTarget, event: string, listener: EventListener) {
-    target.addEventListener(event, listener)
-    cleanups.push(() => target.removeEventListener(event, listener))
-  }
+  // Listeners attached after an await outlive setup, so they join this scope.
+  const scope = effectScope()
   function watchWorker(worker: ServiceWorker) {
     const sync = () => {
       if (worker.state === 'installed' && navigator.serviceWorker.controller) {
@@ -38,7 +40,7 @@ export function usePwa(busy: Ref<boolean>) {
       }
       if (worker.state === 'activated') offlineReady.value = true
     }
-    listen(worker, 'statechange', sync)
+    scope.run(() => useEventListener(worker, 'statechange', sync))
     sync()
   }
   function checkedStatus() {
@@ -85,62 +87,56 @@ export function usePwa(busy: Ref<boolean>) {
     try {
       await available.prompt()
       const choice = await available.userChoice
-      if (choice.outcome === 'accepted') installed.value = true
+      if (choice.outcome === 'accepted') accepted.value = true
     } catch {
       status.value = 'Use your browser menu to install this app.'
     }
   }
+  useEventListener(window, 'beforeinstallprompt', (event) => {
+    event.preventDefault()
+    if (isInstallPrompt(event)) prompt.value = event
+  })
+  useEventListener(window, 'appinstalled', () => {
+    accepted.value = true
+    prompt.value = null
+  })
   onMounted(() => {
-    listen(window, 'online', () => {
-      online.value = true
-    })
-    listen(window, 'offline', () => {
-      online.value = false
-    })
-    listen(window, 'beforeinstallprompt', (event) => {
-      event.preventDefault()
-      if (isInstallPrompt(event)) prompt.value = event
-    })
-    listen(window, 'appinstalled', () => {
-      installed.value = true
-      prompt.value = null
-    })
     if (!('serviceWorker' in navigator) || !import.meta.env.PROD) return
-    listen(navigator.serviceWorker, 'controllerchange', () => {
-      const previous = controller
-      controller = navigator.serviceWorker.controller
-      if (!previous || previous === controller) return
-      updateState.value = 'reload'
-      deferred.value = false
-      updating.value = false
-      if (approved && !busy.value) window.location.reload()
-      else
-        status.value =
-          'An update is ready. Save your changes, then update this tab.'
-    })
+    scope.run(() =>
+      useEventListener(navigator.serviceWorker, 'controllerchange', () => {
+        const previous = controller
+        controller = navigator.serviceWorker.controller
+        if (!previous || previous === controller) return
+        updateState.value = 'reload'
+        deferred.value = false
+        updating.value = false
+        if (approved && !busy.value) window.location.reload()
+        else
+          status.value =
+            'An update is ready. Save your changes, then update this tab.'
+      }),
+    )
     void navigator.serviceWorker
       .register(`${import.meta.env.BASE_URL}sw.js`, {
         scope: import.meta.env.BASE_URL,
       })
       .then((value) => {
-        if (disposed) return
+        if (!scope.active) return
         registration = value
         offlineReady.value = value.active?.state === 'activated'
         if (value.waiting) updateState.value = 'waiting'
-        listen(value, 'updatefound', () => {
-          if (value.installing) watchWorker(value.installing)
-        })
+        scope.run(() =>
+          useEventListener(value, 'updatefound', () => {
+            if (value.installing) watchWorker(value.installing)
+          }),
+        )
         if (value.installing) watchWorker(value.installing)
       })
       .catch(() => {
-        if (!disposed)
+        if (scope.active)
           status.value =
             'Offline setup could not finish. Reopen the app online to try again.'
       })
-  })
-  onUnmounted(() => {
-    disposed = true
-    for (const cleanup of cleanups) cleanup()
   })
   return {
     online,

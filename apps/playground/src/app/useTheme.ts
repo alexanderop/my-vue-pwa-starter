@@ -1,36 +1,31 @@
-import { onUnmounted, ref, watch } from 'vue'
-import type { Theme } from '../features/settings/ports/settings'
+import { computed, watchEffect } from 'vue'
+import * as v from 'valibot'
+import { useLocalStorage, useMediaQuery } from '@starter/composables'
+
+const themeSchema = v.picklist(['system', 'light', 'dark'])
+
 export function useTheme() {
-  const preference = ref<Theme>('system')
-  try {
-    const stored = localStorage.getItem('fieldnotes-theme')
-    if (stored === 'light' || stored === 'dark') preference.value = stored
-  } catch {}
-  const system = matchMedia('(prefers-color-scheme: dark)')
-  function apply() {
-    const dark =
-      preference.value === 'dark' ||
-      (preference.value === 'system' && system.matches)
-    document.documentElement.classList.toggle('dark', dark)
-    document.documentElement.dataset.theme = dark ? 'dark' : 'light'
-    document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+  const { state: theme, set: setTheme } = useLocalStorage(
+    'fieldnotes-theme',
+    themeSchema,
+    { fallback: 'system' },
+  )
+  const systemDark = useMediaQuery('(prefers-color-scheme: dark)')
+  const dark = computed(
+    () =>
+      theme.value === 'dark' || (theme.value === 'system' && systemDark.value),
+  )
+  watchEffect(() => {
+    const root = document.documentElement
+    root.classList.toggle('dark', dark.value)
+    root.dataset.theme = dark.value ? 'dark' : 'light'
+    root.style.colorScheme = dark.value ? 'dark' : 'light'
     document
       .querySelector<HTMLMetaElement>('meta[name="theme-color"]')
       ?.setAttribute(
         'content',
-        getComputedStyle(document.documentElement)
-          .getPropertyValue('--color-background')
-          .trim(),
+        getComputedStyle(root).getPropertyValue('--color-background').trim(),
       )
-  }
-  watch(preference, (value) => {
-    apply()
-    try {
-      localStorage.setItem('fieldnotes-theme', value)
-    } catch {}
   })
-  system.addEventListener('change', apply)
-  onUnmounted(() => system.removeEventListener('change', apply))
-  apply()
-  return preference
+  return { theme, setTheme }
 }

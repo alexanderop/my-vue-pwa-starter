@@ -18,6 +18,9 @@ export default {
     'apps/playground': {
       project: ['src/**/*.{ts,vue}'],
     },
+    'packages/composables': {
+      project: ['src/**/*.ts'],
+    },
     'packages/ui': {
       entry: ['histoire.config.ts', 'histoire.setup.ts', 'src/**/*.story.vue'],
       project: ['src/**/*.{ts,vue}', '*.ts'],

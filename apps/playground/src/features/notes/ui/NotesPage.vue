@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useDocumentVisibility, useEventListener } from '@starter/composables'
 import { onBeforeRouteLeave } from 'vue-router'
 import {
   ArrowUpRight,
@@ -239,24 +240,32 @@ function beforeUnload(event: BeforeUnloadEvent) {
     event.returnValue = ''
   }
 }
+// `focus` and `visibilitychange` both fire on tab switch or PWA resume.
+let resumeRefreshing = false
 function focusRefresh() {
-  if (!pending.value) void refresh()
+  if (pending.value || resumeRefreshing) return
+  resumeRefreshing = true
+  void refresh().finally(() => {
+    resumeRefreshing = false
+  })
 }
+useEventListener(window, 'beforeunload', beforeUnload)
+useEventListener(window, 'focus', focusRefresh)
+const visibility = useDocumentVisibility()
+watch(visibility, (value) => {
+  if (value === 'visible') focusRefresh()
+})
 onBeforeRouteLeave(() => {
   if (pending.value) return false
   return !dirty.value || window.confirm('Discard your unsaved changes?')
 })
 onMounted(() => {
   void refresh()
-  window.addEventListener('beforeunload', beforeUnload)
-  window.addEventListener('focus', focusRefresh)
 })
 onUnmounted(() => {
   mounted = false
   readVersion++
   emit('busy-change', false)
-  window.removeEventListener('beforeunload', beforeUnload)
-  window.removeEventListener('focus', focusRefresh)
 })
 </script>
 <template>
