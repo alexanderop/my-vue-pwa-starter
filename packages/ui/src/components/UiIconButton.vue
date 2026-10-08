@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import UiButton from './UiButton.vue'
-withDefaults(
-  defineProps<{
-    label: string
-    variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
-    disabled?: boolean
-  }>(),
-  { variant: 'ghost' },
-)
+const {
+  label,
+  variant = 'ghost',
+  disabled = false,
+} = defineProps<{
+  label: string
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
+  disabled?: boolean
+}>()
+defineSlots<{ icon?(): unknown; default?(): unknown }>()
 </script>
 <template>
   <UiButton

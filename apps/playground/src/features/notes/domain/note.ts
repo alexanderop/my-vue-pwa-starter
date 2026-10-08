@@ -12,7 +12,7 @@ export type Note = Readonly<{
 }>
 
 export type NoteDraft = Readonly<{ title: string; body: string }>
-export type NoteError = Readonly<{
+type NoteError = Readonly<{
   kind: 'validation' | 'storage' | 'conflict' | 'corrupt'
   message: string
   field?: 'title' | 'body'
@@ -33,7 +33,7 @@ export const noteSchema = v.object({
   pinned: v.boolean(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
-  deletedAt: v.optional(timestampSchema),
+  deletedAt: v.exactOptional(timestampSchema),
   revision: v.pipe(v.number(), v.integer(), v.minValue(1)),
 })
 

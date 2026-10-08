@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { nextTick, onErrorCaptured, ref } from 'vue'
+import { nextTick, onErrorCaptured, ref, useTemplateRef } from 'vue'
 import { UiButton } from '@starter/ui'
+defineSlots<{ default(): unknown }>()
 const failed = ref(false)
-const heading = ref<HTMLElement>()
+const heading = useTemplateRef<HTMLElement>('recovery-heading')
 const copyStatus = ref('')
 const diagnostics = JSON.stringify(
   {
@@ -34,7 +35,7 @@ async function copyDiagnostics() {
 </script>
 <template>
   <section v-if="failed" role="alert" aria-labelledby="recovery-title">
-    <h1 id="recovery-title" ref="heading" tabindex="-1">
+    <h1 id="recovery-title" ref="recovery-heading" tabindex="-1">
       Something went wrong.
     </h1>
     <p>

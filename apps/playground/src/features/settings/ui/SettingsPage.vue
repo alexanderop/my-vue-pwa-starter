@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import type { NotesService } from '../../notes'
 import {
@@ -12,7 +12,7 @@ import {
 } from '@lucide/vue'
 import { UiButton, UiCard, UiBadge } from '@starter/ui'
 import type { Theme, AppCapabilities } from '../ports/settings'
-const props = defineProps<{
+const { theme, pwa, service } = defineProps<{
   theme: Theme
   pwa: AppCapabilities
   service: NotesService
@@ -24,7 +24,7 @@ const emit = defineEmits<{
 const backupBusy = ref(false)
 const backupMessage = ref('')
 const backupError = ref('')
-const importFile = ref<HTMLInputElement>()
+const importFile = useTemplateRef<HTMLInputElement>('import-file')
 onBeforeRouteLeave(() => !backupBusy.value)
 function protectBackup(event: BeforeUnloadEvent) {
   if (!backupBusy.value) return
@@ -36,13 +36,14 @@ onUnmounted(() => {
   window.removeEventListener('beforeunload', protectBackup)
   emit('busy-change', false)
 })
-const installPlatform =
-  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-    ? 'ios'
-    : /Android/.test(navigator.userAgent)
-      ? 'android'
-      : 'desktop'
+function detectPlatform() {
+  const touchMac =
+    navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+  if (/iPad|iPhone|iPod/.test(navigator.userAgent) || touchMac) return 'ios'
+  if (/Android/.test(navigator.userAgent)) return 'android'
+  return 'desktop'
+}
+const installPlatform = detectPlatform()
 
 function startBackup() {
   backupBusy.value = true
@@ -57,7 +58,7 @@ function finishBackup() {
 async function exportBackup() {
   startBackup()
   try {
-    const result = await props.service.exportData()
+    const result = await service.exportData()
     if (!result.ok) {
       backupError.value = result.error.message
       return
@@ -102,7 +103,7 @@ async function importBackup(event: Event) {
         'This file is not readable JSON. Choose a Fieldnotes backup.'
       return
     }
-    const result = await props.service.importData(payload)
+    const result = await service.importData(payload)
     if (!result.ok) {
       backupError.value = result.error.message
       return
@@ -263,7 +264,7 @@ const themes = [
           >Import backup</UiButton
         >
         <input
-          ref="importFile"
+          ref="import-file"
           class="sr-only"
           type="file"
           accept=".json,application/json"

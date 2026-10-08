@@ -1,7 +1,8 @@
 <script setup lang="ts">
-withDefaults(defineProps<{ tone?: 'neutral' | 'success' | 'warning' }>(), {
-  tone: 'neutral',
-})
+const { tone = 'neutral' } = defineProps<{
+  tone?: 'neutral' | 'success' | 'warning'
+}>()
+defineSlots<{ default(): unknown }>()
 </script>
 <template>
   <span class="ui-badge" :class="`ui-badge--${tone}`"><slot /></span>

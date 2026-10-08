@@ -38,50 +38,54 @@ const types = {
   '.webmanifest': 'application/manifest+json',
   '.json': 'application/json',
 }
-const server = createServer((request, response) => {
-  const url = new URL(request.url ?? '/', 'http://127.0.0.1:42785')
+function sendStatus(response, status) {
+  response.writeHead(status)
+  response.end()
+}
+function handleTestRoute(request, url, response) {
   if (request.method === 'GET' && url.pathname === '/__test/away') {
     response.writeHead(200, { 'Content-Type': 'text/html' })
     response.end(
       '<!doctype html><title>Another page</title><h1>Another page</h1>',
     )
-    return
+    return true
   }
-  if (request.method === 'POST' && url.pathname === '/__test/version') {
-    const version = url.searchParams.get('value')
-    if (!builds.has(version)) {
-      response.writeHead(400)
-      response.end()
-      return
-    }
-    active = version
-    response.end(active)
-    return
+  if (request.method !== 'POST' || url.pathname !== '/__test/version')
+    return false
+  const version = url.searchParams.get('value')
+  if (!builds.has(version)) {
+    sendStatus(response, 400)
+    return true
   }
-  if (request.method !== 'GET') {
-    response.writeHead(405)
-    response.end()
-    return
-  }
+  active = version
+  response.end(active)
+  return true
+}
+function resolveFile(pathname) {
   const directory = builds.get(active)
   let file
   try {
-    file = resolve(directory, '.' + decodeURIComponent(url.pathname))
+    file = resolve(directory, '.' + decodeURIComponent(pathname))
   } catch {
-    response.writeHead(400)
-    response.end()
-    return
+    return { status: 400 }
   }
-  if (file !== directory && !file.startsWith(directory + sep)) {
-    response.writeHead(403)
-    response.end()
-    return
-  }
+  if (file !== directory && !file.startsWith(directory + sep))
+    return { status: 403 }
   if (file === directory || !extname(file))
     file = resolve(directory, 'index.html')
-  if (!existsSync(file)) {
-    response.writeHead(404)
-    response.end()
+  if (!existsSync(file)) return { status: 404 }
+  return { file }
+}
+const server = createServer((request, response) => {
+  const url = new URL(request.url ?? '/', 'http://127.0.0.1:42785')
+  if (handleTestRoute(request, url, response)) return
+  if (request.method !== 'GET') {
+    sendStatus(response, 405)
+    return
+  }
+  const { file, status } = resolveFile(url.pathname)
+  if (!file) {
+    sendStatus(response, status)
     return
   }
   response.writeHead(200, {

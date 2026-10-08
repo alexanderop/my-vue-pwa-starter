@@ -11,12 +11,13 @@ import {
   DialogClose,
 } from 'reka-ui'
 import UiIconButton from './UiIconButton.vue'
-const open = defineModel<boolean>('open', { default: false })
-const props = defineProps<{
+const { title, description, fallbackFocus } = defineProps<{
   title: string
   description?: string
   fallbackFocus?: string
 }>()
+defineSlots<{ default(): unknown; footer?(): unknown }>()
+const open = defineModel<boolean>('open', { default: false })
 const descriptionId = useId()
 const returnFocus = ref<HTMLElement>()
 function captureFocus() {
@@ -27,7 +28,7 @@ function restoreFocus(event: Event) {
   const target = returnFocus.value?.isConnected
     ? returnFocus.value
     : document.querySelector<HTMLElement>(
-        props.fallbackFocus ?? 'main[tabindex="-1"]',
+        fallbackFocus ?? 'main[tabindex="-1"]',
       )
   if (target) {
     event.preventDefault()
@@ -39,7 +40,8 @@ let dragStart: number | undefined
 function startDrag(event: PointerEvent) {
   if (event.button !== 0 || !matchMedia('(max-width: 767px)').matches) return
   dragStart = event.clientY
-  ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+  if (event.currentTarget instanceof HTMLElement)
+    event.currentTarget.setPointerCapture(event.pointerId)
 }
 function moveDrag(event: PointerEvent) {
   if (dragStart !== undefined)

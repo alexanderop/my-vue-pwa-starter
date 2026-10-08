@@ -1,8 +1,12 @@
 import { computed, onMounted, onUnmounted, ref, type Ref } from 'vue'
 
-interface InstallPrompt extends Event {
+type InstallPrompt = Event & {
   prompt(): Promise<void>
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
+
+function isInstallPrompt(event: Event): event is InstallPrompt {
+  return 'prompt' in event && 'userChoice' in event
 }
 
 export function usePwa(busy: Ref<boolean>) {
@@ -16,7 +20,8 @@ export function usePwa(busy: Ref<boolean>) {
   const installed = ref(window.matchMedia('(display-mode: standalone)').matches)
   const prompt = ref<InstallPrompt | null>(null)
   let registration: ServiceWorkerRegistration | undefined
-  let controller = navigator.serviceWorker?.controller
+  let controller =
+    'serviceWorker' in navigator ? navigator.serviceWorker.controller : null
   let approved = false
   let disposed = false
   const cleanups: (() => void)[] = []
@@ -36,6 +41,12 @@ export function usePwa(busy: Ref<boolean>) {
     listen(worker, 'statechange', sync)
     sync()
   }
+  function checkedStatus() {
+    if (updateState.value !== 'current')
+      return 'A new version is ready when you are.'
+    if (registration?.installing) return 'Checking the latest version…'
+    return 'You are up to date.'
+  }
   async function checkForUpdates() {
     if (!registration) {
       status.value = import.meta.env.DEV
@@ -48,12 +59,7 @@ export function usePwa(busy: Ref<boolean>) {
       await registration.update()
       if (registration.waiting) updateState.value = 'waiting'
       if (updateState.value !== 'current') deferred.value = false
-      status.value =
-        updateState.value !== 'current'
-          ? 'A new version is ready when you are.'
-          : registration.installing
-            ? 'Checking the latest version…'
-            : 'You are up to date.'
+      status.value = checkedStatus()
     } catch {
       status.value =
         'Could not check for updates. Try again when you are online.'
@@ -93,7 +99,7 @@ export function usePwa(busy: Ref<boolean>) {
     })
     listen(window, 'beforeinstallprompt', (event) => {
       event.preventDefault()
-      prompt.value = event as InstallPrompt
+      if (isInstallPrompt(event)) prompt.value = event
     })
     listen(window, 'appinstalled', () => {
       installed.value = true

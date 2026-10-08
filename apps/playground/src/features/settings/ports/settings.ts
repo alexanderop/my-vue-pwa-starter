@@ -1,5 +1,5 @@
 export type Theme = 'system' | 'light' | 'dark'
-export interface AppCapabilities {
+export type AppCapabilities = {
   readonly installed: { readonly value: boolean }
   readonly canInstall: { readonly value: boolean }
   readonly offlineReady: { readonly value: boolean }

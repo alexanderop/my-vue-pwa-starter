@@ -1,5 +1,6 @@
 <script setup lang="ts">
 defineProps<{ title: string; description?: string }>()
+defineSlots<{ icon?(): unknown; default?(): unknown }>()
 </script>
 <template>
   <div class="ui-empty-state">

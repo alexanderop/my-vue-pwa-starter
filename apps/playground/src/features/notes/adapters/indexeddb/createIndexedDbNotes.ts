@@ -22,6 +22,21 @@ const corrupt = () =>
     'Some saved notes could not be read. Your stored data has been left untouched.',
   )
 
+function checkRevision(
+  raw: unknown,
+  expectedRevision: number | null,
+): Result<void> {
+  if (raw === undefined)
+    return expectedRevision === null
+      ? { ok: true, value: undefined }
+      : conflict()
+  const parsed = v.safeParse(noteSchema, raw)
+  if (!parsed.success) return corrupt()
+  return parsed.output.revision === expectedRevision
+    ? { ok: true, value: undefined }
+    : conflict()
+}
+
 export function createIndexedDbNotes({
   indexedDB,
   name = 'my-vue-pwa-starter-notes',
@@ -55,39 +70,40 @@ export function createIndexedDbNotes({
       cancelOpen = () => finish(storageFailure())
       try {
         const request = indexedDB.open(name, 2)
-        request.onupgradeneeded = () => {
+        request.addEventListener('upgradeneeded', () => {
           if (settled || closed) {
             request.transaction?.abort()
             return
           }
           if (!request.result.objectStoreNames.contains('notes'))
             request.result.createObjectStore('notes', { keyPath: 'id' })
-        }
-        request.onerror = () => finish(storageFailure())
-        request.onblocked = () =>
+        })
+        request.addEventListener('error', () => finish(storageFailure()))
+        request.addEventListener('blocked', () =>
           finish(
             failure(
               'storage',
               'Close other tabs using these notes, then try again.',
             ),
-          )
-        request.onsuccess = () => {
+          ),
+        )
+        request.addEventListener('success', () => {
           const connection = request.result
           if (settled || closed) {
             connection.close()
             return
           }
           database = connection
-          connection.onversionchange = () => {
+          connection.addEventListener('versionchange', () => {
             closed = true
             database = undefined
             connection.close()
-          }
-          connection.onclose = () => {
+          })
+          connection.addEventListener('close', () => {
             database = undefined
-          }
+          })
           finish({ ok: true, value: connection })
-        }
+        })
       } catch {
         finish(storageFailure())
       }
@@ -108,39 +124,25 @@ export function createIndexedDbNotes({
     const opened = await open()
     if (!opened.ok) return opened
     return new Promise((resolve) => {
-      let transaction: IDBTransaction | undefined
+      let active: IDBTransaction | undefined
       let result: Result<T> = storageFailure()
       try {
-        transaction = opened.value.transaction('notes', mode)
-        transaction.oncomplete = () => resolve(result)
-        transaction.onabort = () =>
-          resolve(result.ok ? storageFailure() : result)
-        transaction.onerror = () => {
+        active = opened.value.transaction('notes', mode)
+        active.addEventListener('complete', () => resolve(result))
+        active.addEventListener('abort', () =>
+          resolve(result.ok ? storageFailure() : result),
+        )
+        active.addEventListener('error', () => {
           result = storageFailure()
-        }
-        execute(transaction.objectStore('notes'), (next) => {
+        })
+        execute(active.objectStore('notes'), (next) => {
           result = next
         })
       } catch {
-        transaction?.abort()
+        active?.abort()
         resolve(storageFailure())
       }
     })
-  }
-
-  function checkRevision(
-    raw: unknown,
-    expectedRevision: number | null,
-  ): Result<void> {
-    if (raw === undefined)
-      return expectedRevision === null
-        ? { ok: true, value: undefined }
-        : conflict()
-    const parsed = v.safeParse(noteSchema, raw)
-    if (!parsed.success) return corrupt()
-    return parsed.output.revision === expectedRevision
-      ? { ok: true, value: undefined }
-      : conflict()
   }
 
   return {
@@ -152,17 +154,17 @@ export function createIndexedDbNotes({
     list: () =>
       transaction<readonly Note[]>('readonly', (store, complete) => {
         const request = store.getAll()
-        request.onsuccess = () => {
+        request.addEventListener('success', () => {
           const parsed = v.safeParse(v.array(noteSchema), request.result)
           complete(
             parsed.success ? { ok: true, value: parsed.output } : corrupt(),
           )
-        }
+        })
       }),
     save: (note, expectedRevision) =>
       transaction<Note>('readwrite', (store, complete) => {
         const request = store.get(note.id)
-        request.onsuccess = () => {
+        request.addEventListener('success', () => {
           const checked = checkRevision(request.result, expectedRevision)
           if (!checked.ok) {
             complete(checked)
@@ -170,16 +172,18 @@ export function createIndexedDbNotes({
           }
           try {
             const write = store.put(note)
-            write.onsuccess = () => complete({ ok: true, value: note })
+            write.addEventListener('success', () =>
+              complete({ ok: true, value: note }),
+            )
           } catch {
             complete(storageFailure())
           }
-        }
+        })
       }),
     remove: (id, expectedRevision) =>
       transaction<void>('readwrite', (store, complete) => {
         const request = store.get(id)
-        request.onsuccess = () => {
+        request.addEventListener('success', () => {
           const checked = checkRevision(request.result, expectedRevision)
           if (!checked.ok) {
             complete(checked)
@@ -187,11 +191,13 @@ export function createIndexedDbNotes({
           }
           try {
             const deletion = store.delete(id)
-            deletion.onsuccess = () => complete({ ok: true, value: undefined })
+            deletion.addEventListener('success', () =>
+              complete({ ok: true, value: undefined }),
+            )
           } catch {
             complete(storageFailure())
           }
-        }
+        })
       }),
     close() {
       closed = true

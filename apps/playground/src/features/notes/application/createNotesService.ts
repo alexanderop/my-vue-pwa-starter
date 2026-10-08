@@ -8,7 +8,7 @@ import {
 } from '../domain/note'
 import type { NoteRepository } from '../ports/NoteRepository'
 
-export interface NotesService {
+export type NotesService = {
   exportData(): Promise<Result<readonly Note[]>>
   importData(input: unknown): Promise<Result<number>>
   listTrash(): Promise<Result<readonly Note[]>>
@@ -21,6 +21,22 @@ export interface NotesService {
   remove(note: Note): Promise<Result<void>>
 }
 
+async function safely<T>(
+  operation: () => Promise<Result<T>>,
+): Promise<Result<T>> {
+  try {
+    return await operation()
+  } catch {
+    return {
+      ok: false,
+      error: {
+        kind: 'storage',
+        message: 'Your notes could not be saved or loaded. Please try again.',
+      },
+    }
+  }
+}
+
 export function createNotesService({
   repository,
   now,
@@ -30,22 +46,6 @@ export function createNotesService({
   now: () => number
   newId: () => string
 }): NotesService {
-  async function safely<T>(
-    operation: () => Promise<Result<T>>,
-  ): Promise<Result<T>> {
-    try {
-      return await operation()
-    } catch {
-      return {
-        ok: false,
-        error: {
-          kind: 'storage',
-          message: 'Your notes could not be saved or loaded. Please try again.',
-        },
-      }
-    }
-  }
-
   const changeTrash = (note: Note, deletedAt: number | undefined) =>
     safely(() => {
       const changed = {
@@ -101,7 +101,7 @@ export function createNotesService({
               ok: true,
               value: result.value
                 .filter((note) => note.deletedAt === undefined)
-                .sort(
+                .toSorted(
                   (a, b) =>
                     Number(b.pinned) - Number(a.pinned) ||
                     b.updatedAt - a.updatedAt ||

@@ -137,84 +137,89 @@ describe('notes service', () => {
       error: { kind: 'conflict', message: 'Changed elsewhere' },
     })
   })
-})
 
-it('keeps trashed notes recoverable and exports them', async () => {
-  const { service } = fixture()
-  const original = value(
-    await service.create({ title: 'Keep me', body: 'Draft' }),
-  )
-  const deleted = value(await service.trash(original))
-  expect(value(await service.list())).toEqual([])
-  expect(value(await service.listTrash())).toEqual([deleted])
-  expect(value(await service.exportData())).toEqual([deleted])
-  const restored = value(await service.restore(deleted))
-  expect(restored.deletedAt).toBeUndefined()
-  expect(restored.revision).toBe(3)
-  expect(value(await service.list())).toEqual([restored])
-})
-it('imports validated backups as copies while preserving originals and rejects unsupported versions', async () => {
-  const { service } = fixture()
-  const original = value(
-    await service.create({ title: 'Original', body: 'Keep' }),
-  )
-  const backup = { format: 'fieldnotes', version: 1, notes: [original] }
-  expect(value(await service.importData(backup))).toBe(1)
-  const all = value(await service.exportData())
-  expect(all).toHaveLength(2)
-  expect(all[0]).toEqual(original)
-  expect(all[1]?.id).not.toBe(original.id)
-  expect(await service.importData({ ...backup, version: 2 })).toMatchObject({
-    ok: false,
-    error: { kind: 'validation' },
-  })
-  expect(
-    await service.importData({
-      ...backup,
-      notes: [original, { ...original, title: 17 }],
-    }),
-  ).toMatchObject({ ok: false })
-  expect(value(await service.exportData())).toHaveLength(2)
-})
-
-it.each(['createdAt', 'updatedAt', 'deletedAt'] as const)(
-  'rejects an out-of-range %s in a backup before any write',
-  async (field) => {
-    const { service, repository } = fixture()
+  it('keeps trashed notes recoverable and exports them', async () => {
+    const { service } = fixture()
     const original = value(
-      await service.create({ title: 'Keep', body: 'Existing note' }),
+      await service.create({ title: 'Keep me', body: 'Draft' }),
     )
-    const write = vi.spyOn(repository, 'addMany')
-    for (const timestamp of [8_640_000_000_000_001, 1e300]) {
-      expect(
+    const deleted = value(await service.trash(original))
+    expect(value(await service.list())).toEqual([])
+    expect(value(await service.listTrash())).toEqual([deleted])
+    expect(value(await service.exportData())).toEqual([deleted])
+    const restored = value(await service.restore(deleted))
+    expect(restored.deletedAt).toBeUndefined()
+    expect(restored.revision).toBe(3)
+    expect(value(await service.list())).toEqual([restored])
+  })
+  it('imports validated backups as copies while preserving originals and rejects unsupported versions', async () => {
+    const { service } = fixture()
+    const original = value(
+      await service.create({ title: 'Original', body: 'Keep' }),
+    )
+    const backup = { format: 'fieldnotes', version: 1, notes: [original] }
+    expect(value(await service.importData(backup))).toBe(1)
+    const all = value(await service.exportData())
+    expect(all).toHaveLength(2)
+    expect(all[0]).toEqual(original)
+    expect(all[1]?.id).not.toBe(original.id)
+    expect(await service.importData({ ...backup, version: 2 })).toMatchObject({
+      ok: false,
+      error: { kind: 'validation' },
+    })
+    expect(
+      await service.importData({
+        ...backup,
+        notes: [original, { ...original, title: 17 }],
+      }),
+    ).toMatchObject({ ok: false })
+    expect(value(await service.exportData())).toHaveLength(2)
+  })
+
+  it.each(['createdAt', 'updatedAt', 'deletedAt'] as const)(
+    'rejects an out-of-range %s in a backup before any write',
+    async (field) => {
+      const { service, repository } = fixture()
+      const original = value(
+        await service.create({ title: 'Keep', body: 'Existing note' }),
+      )
+      const write = vi.spyOn(repository, 'addMany')
+      for (const timestamp of [8_640_000_000_000_001, 1e300]) {
+        expect(
+          await service.importData({
+            format: 'fieldnotes',
+            version: 1,
+            notes: [original, { ...original, [field]: timestamp }],
+          }),
+        ).toMatchObject({ ok: false, error: { kind: 'validation' } })
+      }
+      expect(write).not.toHaveBeenCalled()
+      expect(value(await service.exportData())).toEqual([original])
+    },
+  )
+
+  it('accepts the inclusive JavaScript Date timestamp limit', async () => {
+    const { service } = fixture()
+    const original = value(
+      await service.create({ title: 'Date limit', body: '' }),
+    )
+    const limit = 8_640_000_000_000_000
+    expect(
+      value(
         await service.importData({
           format: 'fieldnotes',
           version: 1,
-          notes: [original, { ...original, [field]: timestamp }],
+          notes: [
+            {
+              ...original,
+              createdAt: limit,
+              updatedAt: limit,
+              deletedAt: limit,
+            },
+          ],
         }),
-      ).toMatchObject({ ok: false, error: { kind: 'validation' } })
-    }
-    expect(write).not.toHaveBeenCalled()
-    expect(value(await service.exportData())).toEqual([original])
-  },
-)
-
-it('accepts the inclusive JavaScript Date timestamp limit', async () => {
-  const { service } = fixture()
-  const original = value(
-    await service.create({ title: 'Date limit', body: '' }),
-  )
-  const limit = 8_640_000_000_000_000
-  expect(
-    value(
-      await service.importData({
-        format: 'fieldnotes',
-        version: 1,
-        notes: [
-          { ...original, createdAt: limit, updatedAt: limit, deletedAt: limit },
-        ],
-      }),
-    ),
-  ).toBe(1)
-  expect(() => new Date(limit).toISOString()).not.toThrow()
+      ),
+    ).toBe(1)
+    expect(() => new Date(limit).toISOString()).not.toThrow()
+  })
 })

@@ -24,12 +24,12 @@ import {
 import type { Note, NotesService } from '../index'
 import { useNotesSearch } from './useNotesSearch'
 
-const props = defineProps<{ service: NotesService }>()
+const { service } = defineProps<{ service: NotesService }>()
 const emit = defineEmits<{ 'busy-change': [busy: boolean] }>()
 const notes = ref<readonly Note[]>([])
 const loading = ref(true)
 const pending = ref(false)
-const query = useNotesSearch(props.service)
+const query = useNotesSearch(service)
 const trash = ref<readonly Note[]>([])
 const showingTrash = ref(false)
 const undoNote = ref<Note | null>(null)
@@ -86,13 +86,13 @@ const formatDate = (timestamp: number) =>
 
 async function refresh() {
   const version = ++readVersion
-  const result = await props.service.list()
+  const result = await service.list()
   if (!mounted || version !== readVersion) return
   loading.value = false
   if (result.ok) {
     notes.value = result.value
     refreshError.value = ''
-    const deleted = await props.service.listTrash()
+    const deleted = await service.listTrash()
     if (deleted.ok && mounted && version === readVersion)
       trash.value = deleted.value
   } else refreshError.value = result.error.message
@@ -114,7 +114,7 @@ function close() {
   error.value = ''
 }
 async function reviewLatest() {
-  const result = await props.service.exportData()
+  const result = await service.exportData()
   if (!result.ok) {
     error.value = result.error.message
     return
@@ -129,18 +129,23 @@ async function saveCopy() {
 async function replaceLatest() {
   await save('replace')
 }
+function revisionBase(mode: 'normal' | 'copy' | 'replace' | Event) {
+  if (mode === 'copy') return null
+  if (mode === 'replace') return latest.value
+  return editor.value?.original ?? null
+}
+async function showFieldError(field: 'title' | 'body', message: string) {
+  fieldErrors.value = { [field]: message }
+  await nextTick()
+  document.getElementById(`note-${field}`)?.focus()
+}
 async function save(mode: 'normal' | 'copy' | 'replace' | Event = 'normal') {
   if (!editor.value || pending.value) return
   pending.value = true
   readVersion++
   error.value = ''
   fieldErrors.value = {}
-  const original =
-    mode === 'copy'
-      ? null
-      : mode === 'replace'
-        ? latest.value
-        : editor.value.original
+  const original = revisionBase(mode)
   if (
     mode === 'replace' &&
     (!latest.value || latest.value.deletedAt !== undefined)
@@ -150,17 +155,14 @@ async function save(mode: 'normal' | 'copy' | 'replace' | Event = 'normal') {
   }
   const draft = { title: title.value, body: body.value }
   const result = original
-    ? await props.service.edit(original, draft)
-    : await props.service.create(draft)
+    ? await service.edit(original, draft)
+    : await service.create(draft)
   pending.value = false
   if (!result.ok) {
     error.value = result.error.message
     conflict.value = result.error.kind === 'conflict'
-    if (result.error.field) {
-      fieldErrors.value = { [result.error.field]: result.error.message }
-      await nextTick()
-      document.getElementById(`note-${result.error.field}`)?.focus()
-    }
+    if (result.error.field)
+      await showFieldError(result.error.field, result.error.message)
     return
   }
   notes.value = [
@@ -176,7 +178,7 @@ async function pin(note: Note) {
   if (pending.value) return
   pending.value = true
   readVersion++
-  const result = await props.service.setPinned(note, !note.pinned)
+  const result = await service.setPinned(note, !note.pinned)
   pending.value = false
   if (!result.ok) {
     refreshError.value = result.error.message
@@ -197,8 +199,8 @@ async function remove() {
   pending.value = true
   readVersion++
   const result = showingTrash.value
-    ? await props.service.remove(note)
-    : await props.service.trash(note)
+    ? await service.remove(note)
+    : await service.trash(note)
   pending.value = false
   if (!result.ok) {
     error.value = result.error.message
@@ -215,7 +217,7 @@ async function remove() {
 async function restore(note: Note) {
   if (pending.value) return
   pending.value = true
-  const result = await props.service.restore(note)
+  const result = await service.restore(note)
   pending.value = false
   if (!result.ok) {
     refreshError.value = result.error.message

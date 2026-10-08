@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { X } from '@lucide/vue'
 import UiIconButton from './UiIconButton.vue'
-withDefaults(defineProps<{ message: string; tone?: 'status' | 'error' }>(), {
-  tone: 'status',
-})
+const { message, tone = 'status' } = defineProps<{
+  message: string
+  tone?: 'status' | 'error'
+}>()
 defineEmits<{ dismiss: [] }>()
 </script>
 <template>
