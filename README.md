@@ -31,6 +31,7 @@ Open http://localhost:6006. Stories use the same components as the application.
 | ----------------- | ---------------------------------------------------------------------------- |
 | `apps/playground` | Fieldnotes PWA, feature composition, native IndexedDB, installation, updates |
 | `packages/ui`     | `@starter/ui`, design tokens, reusable Vue components, Histoire stories      |
+| `packages/result` | `@starter/result`, typed `Result` values vendored from better-result         |
 
 The UI package exports Vue source for Vite consumers within this workspace. It is private and does not require an npm release. Applications import components from `@starter/ui` and styles from `@starter/ui/styles.css`.
 
@@ -95,6 +96,16 @@ node scripts/verify-deployment.mjs https://alexanderop.github.io/my-vue-pwa-star
 ```
 
 This checks the deployment path, service-worker scope, mobile layout, route reloads, and offline reads and writes. Notes created by the check stay in its temporary browser session.
+
+## Error handling
+
+Expected failures are return values, not exceptions. Repositories and services return `Result<T, E>` from `@starter/result`, and the UI checks `result.isErr()` before reading `result.value`. `Result.gen` composes steps in order and stops at the first error; `Result.tryPromise` turns a thrown exception into a typed error at the service boundary.
+
+Backup import and export show the full pattern. `features/notes/domain/backup.ts` defines one `TaggedError` class per failure, `importBackup` chains the size check, file read, JSON parse, validation, and write with `Result.gen`, and `SettingsPage.vue` turns the outcome into a message with `.match` and `matchError`. TypeScript rejects the page if a new backup error has no message.
+
+## Credits
+
+`packages/result` is a verbatim copy of [better-result](https://github.com/dmmulroy/better-result) 3.0.1 by [Dillon Mulroy](https://github.com/dmmulroy), including its test suite and MIT license. The library has no runtime dependencies; it is vendored so the starter owns and reviews the code it ships. See [packages/result/README.md](packages/result/README.md) for the upstream commit and update steps.
 
 ## Design reference
 

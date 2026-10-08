@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
-import type { NotesService } from '../../notes'
+import { matchError } from '@starter/result'
+import type {
+  BackupExportError,
+  BackupImportError,
+  NotesService,
+} from '../../notes'
 import {
   Download,
   Monitor,
@@ -54,29 +59,47 @@ function finishBackup() {
   backupBusy.value = false
   emit('busy-change', false)
 }
+const plural = (count: number) => `${count} ${count === 1 ? 'note' : 'notes'}`
+
+const exportErrorMessage = (error: BackupExportError) =>
+  matchError(error, {
+    CollectionTooLarge: () =>
+      'This collection exceeds the backup limit of 5,000 notes or 10 MB. No backup was downloaded. Your notes are unchanged.',
+    BackupStorageFailed: ({ failure }) => failure.message,
+  })
+
+const importErrorMessage = (error: BackupImportError) =>
+  matchError(error, {
+    BackupFileTooLarge: () => 'Choose a backup smaller than 10 MB.',
+    BackupUnreadable: () =>
+      'This file is not readable JSON. Choose a Fieldnotes backup.',
+    InvalidBackup: () =>
+      'Choose a valid Fieldnotes version 1 backup with no more than 5,000 notes.',
+    BackupStorageFailed: ({ failure }) => failure.message,
+  })
+
+function download(json: string) {
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `fieldnotes-${new Date().toISOString().slice(0, 10)}.json`
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 async function exportBackup() {
   startBackup()
   try {
-    const result = await props.service.exportData()
-    if (!result.ok) {
-      backupError.value = result.error.message
-      return
-    }
-    const payload = { format: 'fieldnotes', version: 1, notes: result.value }
-    const serialized = JSON.stringify(payload, null, 2)
-    const blob = new Blob([serialized], { type: 'application/json' })
-    if (result.value.length > 5000 || blob.size > 10 * 1024 * 1024) {
-      backupError.value =
-        'This collection exceeds the backup limit of 5,000 notes or 10 MB. No backup was downloaded. Your notes are unchanged.'
-      return
-    }
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `fieldnotes-${new Date().toISOString().slice(0, 10)}.json`
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
-    backupMessage.value = `Backup download started: ${result.value.length} ${result.value.length === 1 ? 'note' : 'notes'}, including trash. Keep it somewhere safe.`
+    ;(await props.service.exportBackup()).match({
+      ok: ({ json, count }) => {
+        download(json)
+        backupMessage.value = `Backup download started: ${plural(count)}, including trash. Keep it somewhere safe.`
+      },
+      err: (error) => {
+        backupError.value = exportErrorMessage(error)
+      },
+    })
   } catch {
     backupError.value = 'The backup could not be downloaded. Please try again.'
   } finally {
@@ -90,24 +113,14 @@ async function importBackup(event: Event) {
   if (!file) return
   startBackup()
   try {
-    if (file.size > 10 * 1024 * 1024) {
-      backupError.value = 'Choose a backup smaller than 10 MB.'
-      return
-    }
-    let payload: unknown
-    try {
-      payload = JSON.parse(await file.text())
-    } catch {
-      backupError.value =
-        'This file is not readable JSON. Choose a Fieldnotes backup.'
-      return
-    }
-    const result = await props.service.importData(payload)
-    if (!result.ok) {
-      backupError.value = result.error.message
-      return
-    }
-    backupMessage.value = `Imported ${result.value} ${result.value === 1 ? 'note' : 'notes'} as new copies. Existing notes were kept. Trashed notes are in Trash.`
+    ;(await props.service.importBackup(file)).match({
+      ok: (count) => {
+        backupMessage.value = `Imported ${plural(count)} as new copies. Existing notes were kept. Trashed notes are in Trash.`
+      },
+      err: (error) => {
+        backupError.value = importErrorMessage(error)
+      },
+    })
   } catch {
     backupError.value = 'The backup could not be imported. Please try again.'
   } finally {

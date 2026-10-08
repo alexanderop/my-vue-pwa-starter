@@ -89,7 +89,7 @@ for (const file of [...files(app), ...files(ui)]) {
       report('Only composition may wire feature internals')
     if (
       pure &&
-      ((!target && specifier !== 'valibot') ||
+      ((!target && !['valibot', '@starter/result'].includes(specifier)) ||
         (target &&
           !/\/features\/[^/]+\/(domain|application|ports)\//.test(target)))
     )

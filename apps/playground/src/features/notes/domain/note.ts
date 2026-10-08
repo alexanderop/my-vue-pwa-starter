@@ -1,3 +1,4 @@
+import { Result } from '@starter/result'
 import * as v from 'valibot'
 
 export type Note = Readonly<{
@@ -17,7 +18,7 @@ export type NoteError = Readonly<{
   message: string
   field?: 'title' | 'body'
 }>
-export type Result<T> = { ok: true; value: T } | { ok: false; error: NoteError }
+export type NoteResult<T> = Result<T, NoteError>
 
 const timestampSchema = v.pipe(
   v.number(),
@@ -50,22 +51,13 @@ const draftSchema = v.object({
   ),
 })
 
-export function parseDraft(draft: NoteDraft): Result<NoteDraft> {
+export function parseDraft(draft: NoteDraft): NoteResult<NoteDraft> {
   const parsed = v.safeParse(draftSchema, draft)
   return parsed.success
-    ? { ok: true, value: parsed.output }
-    : {
-        ok: false,
-        error: {
-          kind: 'validation',
-          message: parsed.issues[0].message,
-          field: parsed.issues[0].path?.[0]?.key === 'body' ? 'body' : 'title',
-        },
-      }
+    ? Result.ok(parsed.output)
+    : Result.err({
+        kind: 'validation',
+        message: parsed.issues[0].message,
+        field: parsed.issues[0].path?.[0]?.key === 'body' ? 'body' : 'title',
+      })
 }
-
-export const backupSchema = v.object({
-  format: v.literal('fieldnotes'),
-  version: v.literal(1),
-  notes: v.pipe(v.array(noteSchema), v.maxLength(5000)),
-})

@@ -1,7 +1,10 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": ["packages/result/src/**"],
   "plugins": ["eslint", "typescript", "unicorn", "oxc", "import", "vue"],
-  "rules": { "import/no-cycle": "error" },
+  "rules": {
+    "import/no-cycle": "error"
+  },
   "overrides": [
     {
       "files": [
@@ -36,7 +39,11 @@
         ],
         "no-restricted-properties": [
           "error",
-          { "object": "Date", "property": "now", "message": "Inject a clock." }
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "Inject a clock."
+          }
         ]
       }
     },
@@ -64,7 +71,11 @@
         ],
         "no-restricted-properties": [
           "error",
-          { "object": "Date", "property": "now", "message": "Inject a clock." }
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "Inject a clock."
+          }
         ]
       }
     },

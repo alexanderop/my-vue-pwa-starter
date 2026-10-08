@@ -89,11 +89,11 @@ async function refresh() {
   const result = await props.service.list()
   if (!mounted || version !== readVersion) return
   loading.value = false
-  if (result.ok) {
+  if (result.isOk()) {
     notes.value = result.value
     refreshError.value = ''
     const deleted = await props.service.listTrash()
-    if (deleted.ok && mounted && version === readVersion)
+    if (deleted.isOk() && mounted && version === readVersion)
       trash.value = deleted.value
   } else refreshError.value = result.error.message
 }
@@ -115,7 +115,7 @@ function close() {
 }
 async function reviewLatest() {
   const result = await props.service.exportData()
-  if (!result.ok) {
+  if (result.isErr()) {
     error.value = result.error.message
     return
   }
@@ -153,7 +153,7 @@ async function save(mode: 'normal' | 'copy' | 'replace' | Event = 'normal') {
     ? await props.service.edit(original, draft)
     : await props.service.create(draft)
   pending.value = false
-  if (!result.ok) {
+  if (result.isErr()) {
     error.value = result.error.message
     conflict.value = result.error.kind === 'conflict'
     if (result.error.field) {
@@ -178,7 +178,7 @@ async function pin(note: Note) {
   readVersion++
   const result = await props.service.setPinned(note, !note.pinned)
   pending.value = false
-  if (!result.ok) {
+  if (result.isErr()) {
     refreshError.value = result.error.message
     return
   }
@@ -200,7 +200,7 @@ async function remove() {
     ? await props.service.remove(note)
     : await props.service.trash(note)
   pending.value = false
-  if (!result.ok) {
+  if (result.isErr()) {
     error.value = result.error.message
     return
   }
@@ -217,7 +217,7 @@ async function restore(note: Note) {
   pending.value = true
   const result = await props.service.restore(note)
   pending.value = false
-  if (!result.ok) {
+  if (result.isErr()) {
     refreshError.value = result.error.message
     return
   }

@@ -46,9 +46,9 @@ test('backup import reports invalid JSON, then safely adds copies and retains ex
     title: 'Keep me',
     body: 'Original content',
   })
-  expect(created.ok).toBe(true)
+  expect(created.isOk()).toBe(true)
   const backup = await service.exportData()
-  if (!backup.ok) throw new Error('Unable to prepare backup')
+  if (backup.isErr()) throw new Error('Unable to prepare backup')
   const input = page.getByLabelText('Choose a Fieldnotes backup')
   await input.upload(
     new File(['broken json'], 'broken.json', { type: 'application/json' }),
@@ -76,7 +76,7 @@ test('backup import reports invalid JSON, then safely adds copies and retains ex
     .toContain('Imported 1 note as new copies')
   await expect.element(page.getByRole('alert')).not.toBeInTheDocument()
   const result = await service.list()
-  if (!result.ok) throw new Error('Unable to read imported notes')
+  if (result.isErr()) throw new Error('Unable to read imported notes')
   expect(result.value).toHaveLength(2)
   expect(new Set(result.value.map((note) => note.id)).size).toBe(2)
   expect(result.value.every((note) => note.title === 'Keep me')).toBe(true)
@@ -100,7 +100,7 @@ test('a structurally invalid backup is rejected without changing notes', async (
   )
   await expect.element(page.getByRole('alert')).toBeVisible()
   const result = await service.list()
-  if (!result.ok) throw new Error('Unable to read existing notes')
+  if (result.isErr()) throw new Error('Unable to read existing notes')
   expect(result.value).toHaveLength(1)
   expect(result.value[0]?.title).toBe('Keep me')
 })

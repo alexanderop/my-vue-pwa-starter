@@ -1,24 +1,43 @@
-import * as v from 'valibot'
+import { Result } from '@starter/result'
+import {
+  BackupFileTooLarge,
+  BackupStorageFailed,
+  BackupUnreadable,
+  backupLimits,
+  parseBackup,
+  serializeBackup,
+  type BackupExportError,
+  type BackupFile,
+  type BackupImportError,
+} from '../domain/backup'
 import {
   parseDraft,
-  backupSchema,
   type Note,
   type NoteDraft,
-  type Result,
+  type NoteError,
+  type NoteResult,
 } from '../domain/note'
 import type { NoteRepository } from '../ports/NoteRepository'
 
 export interface NotesService {
-  exportData(): Promise<Result<readonly Note[]>>
-  importData(input: unknown): Promise<Result<number>>
-  listTrash(): Promise<Result<readonly Note[]>>
-  trash(note: Note): Promise<Result<Note>>
-  restore(note: Note): Promise<Result<Note>>
-  list(): Promise<Result<readonly Note[]>>
-  create(draft: NoteDraft): Promise<Result<Note>>
-  edit(note: Note, draft: NoteDraft): Promise<Result<Note>>
-  setPinned(note: Note, pinned: boolean): Promise<Result<Note>>
-  remove(note: Note): Promise<Result<void>>
+  exportData(): Promise<NoteResult<readonly Note[]>>
+  exportBackup(): Promise<
+    Result<{ json: string; count: number }, BackupExportError>
+  >
+  importBackup(file: BackupFile): Promise<Result<number, BackupImportError>>
+  listTrash(): Promise<NoteResult<readonly Note[]>>
+  trash(note: Note): Promise<NoteResult<Note>>
+  restore(note: Note): Promise<NoteResult<Note>>
+  list(): Promise<NoteResult<readonly Note[]>>
+  create(draft: NoteDraft): Promise<NoteResult<Note>>
+  edit(note: Note, draft: NoteDraft): Promise<NoteResult<Note>>
+  setPinned(note: Note, pinned: boolean): Promise<NoteResult<Note>>
+  remove(note: Note): Promise<NoteResult<void>>
+}
+
+const storageError: NoteError = {
+  kind: 'storage',
+  message: 'Your notes could not be saved or loaded. Please try again.',
 }
 
 export function createNotesService({
@@ -31,19 +50,18 @@ export function createNotesService({
   newId: () => string
 }): NotesService {
   async function safely<T>(
-    operation: () => Promise<Result<T>>,
-  ): Promise<Result<T>> {
-    try {
-      return await operation()
-    } catch {
-      return {
-        ok: false,
-        error: {
-          kind: 'storage',
-          message: 'Your notes could not be saved or loaded. Please try again.',
-        },
-      }
-    }
+    operation: () => Promise<NoteResult<T>>,
+  ): Promise<NoteResult<T>> {
+    const attempted = await Result.tryPromise({
+      try: operation,
+      catch: () => storageError,
+    })
+    return Result.flatten(attempted)
+  }
+  async function stored<T>(operation: () => Promise<NoteResult<T>>) {
+    return (await safely(operation)).mapError(
+      (failure) => new BackupStorageFailed({ failure }),
+    )
   }
 
   const changeTrash = (note: Note, deletedAt: number | undefined) =>
@@ -60,87 +78,84 @@ export function createNotesService({
   return {
     exportData: () => safely(() => repository.list()),
     listTrash: () =>
-      safely(async () => {
-        const result = await repository.list()
-        return result.ok
-          ? {
-              ok: true,
-              value: result.value.filter(
-                (note) => note.deletedAt !== undefined,
-              ),
-            }
-          : result
-      }),
+      safely(async () =>
+        (await repository.list()).map((notes) =>
+          notes.filter((note) => note.deletedAt !== undefined),
+        ),
+      ),
     trash: (note) => changeTrash(note, now()),
     restore: (note) => changeTrash(note, undefined),
-    importData: (input) =>
-      safely(async () => {
-        const parsed = v.safeParse(backupSchema, input)
-        if (!parsed.success)
-          return {
-            ok: false,
-            error: {
-              kind: 'validation',
-              message:
-                'Choose a valid Fieldnotes version 1 backup with no more than 5,000 notes.',
-            },
-          }
-        const imported = parsed.output.notes.map((note) => ({
+    exportBackup: () =>
+      Result.gen(async function* () {
+        const notes = yield* Result.await(stored(() => repository.list()))
+        const json = yield* serializeBackup(notes)
+        return Result.ok({ json, count: notes.length })
+      }),
+    importBackup: (file) =>
+      Result.gen(async function* () {
+        if (file.size > backupLimits.bytes)
+          return yield* new BackupFileTooLarge({ bytes: file.size })
+        const text = yield* Result.await(
+          Result.tryPromise({
+            try: () => file.text(),
+            catch: () => new BackupUnreadable(),
+          }),
+        )
+        const notes = yield* parseBackup(text)
+        const imported = notes.map((note) => ({
           ...note,
           id: newId(),
           revision: 1,
         }))
-        const result = await repository.addMany(imported)
-        return result.ok ? { ok: true, value: imported.length } : result
+        yield* Result.await(stored(() => repository.addMany(imported)))
+        return Result.ok(imported.length)
       }),
     list: () =>
-      safely(async () => {
-        const result = await repository.list()
-        return result.ok
-          ? {
-              ok: true,
-              value: result.value
-                .filter((note) => note.deletedAt === undefined)
-                .sort(
-                  (a, b) =>
-                    Number(b.pinned) - Number(a.pinned) ||
-                    b.updatedAt - a.updatedAt ||
-                    a.id.localeCompare(b.id),
-                ),
-            }
-          : result
-      }),
+      safely(async () =>
+        (await repository.list()).map((notes) =>
+          notes
+            .filter((note) => note.deletedAt === undefined)
+            .sort(
+              (a, b) =>
+                Number(b.pinned) - Number(a.pinned) ||
+                b.updatedAt - a.updatedAt ||
+                a.id.localeCompare(b.id),
+            ),
+        ),
+      ),
     create: (draft) =>
-      safely(async () => {
-        const parsed = parseDraft(draft)
-        if (!parsed.ok) return parsed
-        const timestamp = now()
-        return repository.save(
-          {
-            ...parsed.value,
-            id: newId(),
-            pinned: false,
-            createdAt: timestamp,
-            updatedAt: timestamp,
-            revision: 1,
-          },
-          null,
-        )
-      }),
+      safely(() =>
+        Result.gen(async function* () {
+          const parsed = yield* parseDraft(draft)
+          const timestamp = now()
+          return repository.save(
+            {
+              ...parsed,
+              id: newId(),
+              pinned: false,
+              createdAt: timestamp,
+              updatedAt: timestamp,
+              revision: 1,
+            },
+            null,
+          )
+        }),
+      ),
     edit: (note, draft) =>
-      safely(async () => {
-        const parsed = parseDraft(draft)
-        if (!parsed.ok) return parsed
-        return repository.save(
-          {
-            ...note,
-            ...parsed.value,
-            updatedAt: Math.max(now(), note.updatedAt),
-            revision: note.revision + 1,
-          },
-          note.revision,
-        )
-      }),
+      safely(() =>
+        Result.gen(async function* () {
+          const parsed = yield* parseDraft(draft)
+          return repository.save(
+            {
+              ...note,
+              ...parsed,
+              updatedAt: Math.max(now(), note.updatedAt),
+              revision: note.revision + 1,
+            },
+            note.revision,
+          )
+        }),
+      ),
     setPinned: (note, pinned) =>
       safely(() =>
         repository.save(

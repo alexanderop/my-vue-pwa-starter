@@ -1,11 +1,12 @@
+import { Result } from '@starter/result'
 import * as v from 'valibot'
-import { noteSchema, type Note, type Result } from '../../domain/note'
+import { noteSchema, type Note, type NoteResult } from '../../domain/note'
 import type { NoteRepository } from '../../ports/NoteRepository'
 
 const failure = (
   kind: 'storage' | 'conflict' | 'corrupt',
   message: string,
-): Result<never> => ({ ok: false, error: { kind, message } })
+): NoteResult<never> => Result.err({ kind, message })
 const storageFailure = () =>
   failure(
     'storage',
@@ -30,11 +31,11 @@ export function createIndexedDbNotes({
   name?: string
 }): NoteRepository & { close(): void } {
   let database: IDBDatabase | undefined
-  let opening: Promise<Result<IDBDatabase>> | undefined
+  let opening: Promise<NoteResult<IDBDatabase>> | undefined
   let cancelOpen: (() => void) | undefined
   let closed = false
 
-  function open(): Promise<Result<IDBDatabase>> {
+  function open(): Promise<NoteResult<IDBDatabase>> {
     if (closed)
       return Promise.resolve(
         failure(
@@ -42,11 +43,11 @@ export function createIndexedDbNotes({
           'The notes connection has closed. Keep your draft and reload the app to reconnect.',
         ),
       )
-    if (database) return Promise.resolve({ ok: true, value: database })
+    if (database) return Promise.resolve(Result.ok(database))
     if (opening) return opening
-    opening = new Promise<Result<IDBDatabase>>((resolve) => {
+    opening = new Promise<NoteResult<IDBDatabase>>((resolve) => {
       let settled = false
-      function finish(result: Result<IDBDatabase>) {
+      function finish(result: NoteResult<IDBDatabase>) {
         if (settled) return
         settled = true
         cancelOpen = undefined
@@ -86,7 +87,7 @@ export function createIndexedDbNotes({
           connection.onclose = () => {
             database = undefined
           }
-          finish({ ok: true, value: connection })
+          finish(Result.ok(connection))
         }
       } catch {
         finish(storageFailure())
@@ -102,19 +103,19 @@ export function createIndexedDbNotes({
     mode: IDBTransactionMode,
     execute: (
       store: IDBObjectStore,
-      complete: (result: Result<T>) => void,
+      complete: (result: NoteResult<T>) => void,
     ) => void,
-  ): Promise<Result<T>> {
+  ): Promise<NoteResult<T>> {
     const opened = await open()
-    if (!opened.ok) return opened
+    if (opened.isErr()) return Result.err(opened.error)
     return new Promise((resolve) => {
       let transaction: IDBTransaction | undefined
-      let result: Result<T> = storageFailure()
+      let result: NoteResult<T> = storageFailure()
       try {
         transaction = opened.value.transaction('notes', mode)
         transaction.oncomplete = () => resolve(result)
         transaction.onabort = () =>
-          resolve(result.ok ? storageFailure() : result)
+          resolve(result.isOk() ? storageFailure() : result)
         transaction.onerror = () => {
           result = storageFailure()
         }
@@ -131,15 +132,13 @@ export function createIndexedDbNotes({
   function checkRevision(
     raw: unknown,
     expectedRevision: number | null,
-  ): Result<void> {
+  ): NoteResult<void> {
     if (raw === undefined)
-      return expectedRevision === null
-        ? { ok: true, value: undefined }
-        : conflict()
+      return expectedRevision === null ? Result.ok(undefined) : conflict()
     const parsed = v.safeParse(noteSchema, raw)
     if (!parsed.success) return corrupt()
     return parsed.output.revision === expectedRevision
-      ? { ok: true, value: undefined }
+      ? Result.ok(undefined)
       : conflict()
   }
 
@@ -147,16 +146,14 @@ export function createIndexedDbNotes({
     addMany: (notes) =>
       transaction<void>('readwrite', (store, complete) => {
         for (const note of notes) store.add(note)
-        complete({ ok: true, value: undefined })
+        complete(Result.ok(undefined))
       }),
     list: () =>
       transaction<readonly Note[]>('readonly', (store, complete) => {
         const request = store.getAll()
         request.onsuccess = () => {
           const parsed = v.safeParse(v.array(noteSchema), request.result)
-          complete(
-            parsed.success ? { ok: true, value: parsed.output } : corrupt(),
-          )
+          complete(parsed.success ? Result.ok(parsed.output) : corrupt())
         }
       }),
     save: (note, expectedRevision) =>
@@ -164,13 +161,13 @@ export function createIndexedDbNotes({
         const request = store.get(note.id)
         request.onsuccess = () => {
           const checked = checkRevision(request.result, expectedRevision)
-          if (!checked.ok) {
-            complete(checked)
+          if (checked.isErr()) {
+            complete(Result.err(checked.error))
             return
           }
           try {
             const write = store.put(note)
-            write.onsuccess = () => complete({ ok: true, value: note })
+            write.onsuccess = () => complete(Result.ok(note))
           } catch {
             complete(storageFailure())
           }
@@ -181,13 +178,13 @@ export function createIndexedDbNotes({
         const request = store.get(id)
         request.onsuccess = () => {
           const checked = checkRevision(request.result, expectedRevision)
-          if (!checked.ok) {
-            complete(checked)
+          if (checked.isErr()) {
+            complete(Result.err(checked.error))
             return
           }
           try {
             const deletion = store.delete(id)
-            deletion.onsuccess = () => complete({ ok: true, value: undefined })
+            deletion.onsuccess = () => complete(Result.ok(undefined))
           } catch {
             complete(storageFailure())
           }

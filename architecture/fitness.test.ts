@@ -76,9 +76,11 @@ describe('given the persistence adapters', () => {
 
 describe('given the source tree', () => {
   it('should contain no lint or type suppression comments', () => {
-    const files = ['apps', 'packages', 'scripts', 'e2e'].flatMap((dir) =>
-      sourceFiles(dir, ['.ts', '.vue', '.js', '.mjs']),
-    )
+    // packages/result is vendored verbatim from better-result; its type tests
+    // assert compile errors with @ts-expect-error.
+    const files = ['apps', 'packages', 'scripts', 'e2e']
+      .flatMap((dir) => sourceFiles(dir, ['.ts', '.vue', '.js', '.mjs']))
+      .filter((file) => !file.startsWith('packages/result/'))
     expect(files.length).toBeGreaterThan(0)
     const suppressed = files.filter((file) =>
       /eslint-disable|oxlint-disable|@ts-ignore|@ts-expect-error|@ts-nocheck/.test(

@@ -20,8 +20,9 @@ The notes feature owns its database adapter because no second feature needs a sh
 - `features/notes/ui` owns reactive view state and calls supplied application capabilities.
 - `platform/pwa` owns service-worker registration, installation, and update readiness.
 - `packages/ui` owns reusable presentation, semantic styles, accessible interactions, and Histoire stories.
+- `packages/result` owns the `Result` type that domain, ports, application, and adapters return for expected failures.
 
-`pnpm check:architecture` enforces import directions. Pure code does not use browser globals or Vue. UI components do not discover databases or feature adapters.
+`pnpm check:architecture` enforces import directions. Pure code imports only Valibot and `@starter/result` outside its feature, and does not use browser globals or Vue. UI components do not discover databases or feature adapters.
 
 ## Verification
 

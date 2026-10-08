@@ -37,15 +37,15 @@ afterEach(async () => {
 
 it('commits notes before reporting success and persists through a new connection', async () => {
   const { adapter, name } = repository()
-  expect(await adapter.save(note, null)).toEqual({ ok: true, value: note })
+  expect(await adapter.save(note, null)).toEqual({ status: 'ok', value: note })
   adapter.close()
   const reopened = repository(name).adapter
-  expect(await reopened.list()).toEqual({ ok: true, value: [note] })
+  expect(await reopened.list()).toEqual({ status: 'ok', value: [note] })
   expect(await reopened.remove(note.id, 1)).toEqual({
-    ok: true,
+    status: 'ok',
     value: undefined,
   })
-  expect(await reopened.list()).toEqual({ ok: true, value: [] })
+  expect(await reopened.list()).toEqual({ status: 'ok', value: [] })
 })
 
 it('atomically rejects one of two concurrent writes and prevents stale deletion', async () => {
@@ -56,18 +56,18 @@ it('atomically rejects one of two concurrent writes and prevents stale deletion'
     adapter.save({ ...note, title: 'Tab one', revision: 2 }, 1),
     other.save({ ...note, title: 'Tab two', revision: 2 }, 1),
   ])
-  expect(attempts.filter((result) => result.ok)).toHaveLength(1)
-  expect(attempts.filter((result) => !result.ok)).toEqual([
+  expect(attempts.filter((result) => result.isOk())).toHaveLength(1)
+  expect(attempts.filter((result) => result.isErr())).toEqual([
     expect.objectContaining({
       error: expect.objectContaining({ kind: 'conflict' }),
     }),
   ])
   expect(await other.remove(note.id, 1)).toMatchObject({
-    ok: false,
+    status: 'error',
     error: { kind: 'conflict' },
   })
   const persisted = await other.list()
-  expect(persisted).toMatchObject({ ok: true, value: [{ revision: 2 }] })
+  expect(persisted).toMatchObject({ status: 'ok', value: [{ revision: 2 }] })
 })
 
 it('reports invalid stored data without overwriting or deleting it', async () => {
@@ -86,15 +86,15 @@ it('reports invalid stored data without overwriting or deleting it', async () =>
   })
   raw.close()
   expect(await adapter.list()).toMatchObject({
-    ok: false,
+    status: 'error',
     error: { kind: 'corrupt' },
   })
   expect(await adapter.save(note, 1)).toMatchObject({
-    ok: false,
+    status: 'error',
     error: { kind: 'corrupt' },
   })
   expect(await adapter.remove(note.id, 1)).toMatchObject({
-    ok: false,
+    status: 'error',
     error: { kind: 'corrupt' },
   })
 })
@@ -103,9 +103,12 @@ it('does not reopen a closed adapter, including close during lazy opening', asyn
   const { adapter } = repository()
   const pending = adapter.list()
   adapter.close()
-  expect(await pending).toMatchObject({ ok: false, error: { kind: 'storage' } })
+  expect(await pending).toMatchObject({
+    status: 'error',
+    error: { kind: 'storage' },
+  })
   expect(await adapter.list()).toMatchObject({
-    ok: false,
+    status: 'error',
     error: { kind: 'storage' },
   })
 })
@@ -120,11 +123,11 @@ it('releases its connection for upgrades and requires a reload afterwards', asyn
   })
   upgraded.close()
   expect(await adapter.list()).toMatchObject({
-    ok: false,
+    status: 'error',
     error: { kind: 'storage' },
   })
   expect(await repository(name).adapter.list()).toMatchObject({
-    ok: false,
+    status: 'error',
     error: { kind: 'storage' },
   })
 })
@@ -146,17 +149,17 @@ it('upgrades legacy notes without losing data and prevents old clients reopening
   })
   legacy.onversionchange = () => legacy.close()
   const adapter = repository(name).adapter
-  expect(await adapter.list()).toEqual({ ok: true, value: [note] })
+  expect(await adapter.list()).toEqual({ status: 'ok', value: [note] })
   expect(
     await adapter.save({ ...note, deletedAt: 2, revision: 2 }, 1),
-  ).toMatchObject({ ok: true })
+  ).toMatchObject({ status: 'ok' })
   const oldError = await new Promise<string>((resolve) => {
     const request = indexedDB.open(name, 1)
     request.onerror = () => resolve(request.error?.name ?? '')
   })
   expect(oldError).toBe('VersionError')
   expect(await adapter.list()).toMatchObject({
-    ok: true,
+    status: 'ok',
     value: [{ deletedAt: 2 }],
   })
 })
@@ -164,7 +167,7 @@ it('rolls back the whole import when a generated identity collides', async () =>
   const { adapter } = repository()
   await adapter.save(note, null)
   expect(await adapter.addMany([{ ...note, id: 'new' }, note])).toMatchObject({
-    ok: false,
+    status: 'error',
   })
-  expect(await adapter.list()).toEqual({ ok: true, value: [note] })
+  expect(await adapter.list()).toEqual({ status: 'ok', value: [note] })
 })

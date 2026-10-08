@@ -11,8 +11,13 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'node',
-          include: ['apps/**/*.test.ts'],
+          include: ['apps/**/*.test.ts', 'packages/result/**/*.test.ts'],
           exclude: ['**/*.browser.test.ts'],
+          typecheck: {
+            enabled: true,
+            include: ['packages/result/**/*.test-d.ts'],
+            tsconfig: 'packages/result/tsconfig.json',
+          },
         },
       },
       {

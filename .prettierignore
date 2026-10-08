@@ -10,3 +10,4 @@ docs/decisions.tsv
 .test-builds
 
 .vitest
+packages/result/src

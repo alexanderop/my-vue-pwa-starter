@@ -20,7 +20,7 @@ try {
   )
   write(
     'apps/playground/src/features/notes/ports/store.ts',
-    "import type { Note } from '../domain/note'; export type Store = { list(): Note[] }",
+    "import type { Result } from '@starter/result'; import type { Note } from '../domain/note'; export type Store = { list(): Result<Note[], never> }",
   )
   assert.equal(check().status, 0, 'Valid inward imports must pass')
   const violations = [
