@@ -6,7 +6,8 @@ Use pnpm from the repository root. Keep the lockfile in sync when changing depen
 
 - `pnpm dev` starts the example app.
 - `pnpm dev:ui` starts Histoire.
-- `pnpm verify` runs typechecking, lint, architecture checks, and formatting checks.
+- `pnpm verify` runs typechecking, lint, architecture checks, fitness tests, and formatting checks.
+- `pnpm test:fitness` checks repository-wide architecture rules in `architecture/`.
 - `pnpm test:unit` covers domain rules and application outcomes.
 - `pnpm test:browser` runs component and native IndexedDB tests in Chrome.
 - `pnpm test:e2e` runs the production PWA journeys.

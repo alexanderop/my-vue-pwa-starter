@@ -27,7 +27,8 @@
     "packages/**/*.ts",
     "packages/**/*.vue",
     "*.config.ts",
-    "e2e/**/*.ts"
+    "e2e/**/*.ts",
+    "architecture/**/*.ts"
   ],
   "exclude": ["node_modules", "**/dist", "**/.histoire", "**/.histoire-dist"]
 }
