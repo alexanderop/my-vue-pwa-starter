@@ -17,10 +17,12 @@ import {
   ShieldCheck,
 } from '@lucide/vue'
 import { UiButton, UiCard, UiBadge } from '@starter/ui'
-import type { Theme, AppCapabilities } from '../ports/settings'
-const { theme, setTheme, pwa, service } = defineProps<{
+import type { Theme, Accent, AppCapabilities } from '../ports/settings'
+const { theme, setTheme, accent, setAccent, pwa, service } = defineProps<{
   theme: Theme
   setTheme: (theme: Theme) => Result<void, StorageWriteError>
+  accent: Accent
+  setAccent: (accent: Accent) => Result<void, StorageWriteError>
   pwa: AppCapabilities
   service: NotesService
 }>()
@@ -42,8 +44,8 @@ onUnmounted(() => {
   emit('busy-change', false)
 })
 const themeMessage = ref('')
-function chooseTheme(next: Theme) {
-  themeMessage.value = setTheme(next).match({
+function reportAppearance(saved: Result<void, StorageWriteError>) {
+  themeMessage.value = saved.match({
     ok: () => '',
     err: (error) =>
       matchError(error, {
@@ -150,6 +152,12 @@ const themes = [
   { value: 'light', label: 'Light', icon: Sun },
   { value: 'dark', label: 'Dark', icon: Moon },
 ] as const
+const accents = [
+  { value: 'teal', label: 'Teal' },
+  { value: 'violet', label: 'Violet' },
+  { value: 'pink', label: 'Pink' },
+  { value: 'sand', label: 'Sand' },
+] as const
 </script>
 <template>
   <section class="page settings-page" aria-labelledby="settings-title">
@@ -174,10 +182,29 @@ const themes = [
             name="theme"
             :value="item.value"
             :checked="theme === item.value"
-            @change="chooseTheme(item.value)"
+            @change="reportAppearance(setTheme(item.value))"
           /><component :is="item.icon" :size="22" aria-hidden="true" /><span>{{
             item.label
           }}</span></label
+        >
+      </fieldset>
+      <fieldset class="accent-picker">
+        <legend>Accent colour</legend>
+        <label
+          v-for="item in accents"
+          :key="item.value"
+          :class="{ selected: accent === item.value }"
+          ><input
+            type="radio"
+            name="accent"
+            :value="item.value"
+            :checked="accent === item.value"
+            @change="reportAppearance(setAccent(item.value))"
+          /><span
+            class="accent-swatch"
+            :data-accent="item.value"
+            aria-hidden="true"
+          /><span>{{ item.label }}</span></label
         >
       </fieldset>
       <p role="status" class="muted" data-testid="theme-status">

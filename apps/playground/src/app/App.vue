@@ -10,7 +10,7 @@ const { notes } = defineProps<{ notes: NotesService }>()
 const route = useRoute()
 const router = useRouter()
 const busy = ref(false)
-const { theme, setTheme } = useTheme()
+const { theme, setTheme, accent, setAccent } = useTheme()
 const pwa = usePwa(busy)
 const items = [
   { id: 'notes', label: 'Notes', icon: NotebookPen },
@@ -23,6 +23,8 @@ const pageProps = computed(() =>
         service: notes,
         theme: theme.value,
         setTheme,
+        accent: accent.value,
+        setAccent,
         pwa,
       }
     : {

@@ -13,9 +13,6 @@
   --color-surface: #fff;
   --color-foreground: #212a32;
   --color-muted: #69757f;
-  --color-primary: #147d70;
-  --color-primary-hover: #10675d;
-  --color-primary-soft: #e5f3ed;
   --color-border: #e2e7e9;
   --color-danger: #b43c3c;
   --color-warning: #846119;
@@ -29,13 +26,58 @@
   --color-surface: #1c2429;
   --color-foreground: #eaf0f2;
   --color-muted: #a0adb6;
-  --color-primary: #80d5bb;
-  --color-primary-hover: #a2e5d2;
-  --color-primary-soft: #223e35;
   --color-border: #344149;
   --color-danger: #ff9999;
   --color-warning: #e8c779;
   --shadow: 0 4px 16px #00000014;
+}
+/* Accent tokens also apply to nested [data-accent] elements, such as picker swatches. */
+:root,
+[data-accent='teal'] {
+  --color-primary: #147d70;
+  --color-primary-hover: #10675d;
+  --color-primary-soft: #e5f3ed;
+}
+[data-accent='violet'] {
+  --color-primary: #6b4fbb;
+  --color-primary-hover: #5a40a3;
+  --color-primary-soft: #efeafa;
+}
+[data-accent='pink'] {
+  --color-primary: #b4326a;
+  --color-primary-hover: #982857;
+  --color-primary-soft: #fbe8f0;
+}
+[data-accent='sand'] {
+  --color-primary: #8a5a10;
+  --color-primary-hover: #734b0c;
+  --color-primary-soft: #f7ecdb;
+}
+.dark,
+[data-theme='dark'],
+[data-theme='dark'][data-accent='teal'],
+[data-theme='dark'] [data-accent='teal'] {
+  --color-primary: #80d5bb;
+  --color-primary-hover: #a2e5d2;
+  --color-primary-soft: #223e35;
+}
+[data-theme='dark'][data-accent='violet'],
+[data-theme='dark'] [data-accent='violet'] {
+  --color-primary: #b39dfb;
+  --color-primary-hover: #cbbcfc;
+  --color-primary-soft: #30283f;
+}
+[data-theme='dark'][data-accent='pink'],
+[data-theme='dark'] [data-accent='pink'] {
+  --color-primary: #f59ac0;
+  --color-primary-hover: #f8b8d3;
+  --color-primary-soft: #42222f;
+}
+[data-theme='dark'][data-accent='sand'],
+[data-theme='dark'] [data-accent='sand'] {
+  --color-primary: #efbc73;
+  --color-primary-hover: #f4d09c;
+  --color-primary-soft: #40311f;
 }
 * {
   box-sizing: border-box;

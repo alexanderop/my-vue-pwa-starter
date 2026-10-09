@@ -20,6 +20,8 @@ describe('SettingsPage backups', () => {
   async function setup(
     setTheme: (theme: string) => Result<void, StorageWriteError> = () =>
       Result.ok(),
+    setAccent: (accent: string) => Result<void, StorageWriteError> = () =>
+      Result.ok(),
   ) {
     vi.stubGlobal('__APP_VERSION__', 'test')
     const repository = createIndexedDbNotes({
@@ -36,6 +38,8 @@ describe('SettingsPage backups', () => {
       props: {
         theme: 'system',
         setTheme,
+        accent: 'teal',
+        setAccent,
         service,
         pwa: {
           installed: { value: false },
@@ -70,6 +74,23 @@ describe('SettingsPage backups', () => {
     await setup(() => Result.err(error))
     await page.getByRole('radio', { name: 'Dark' }).click()
     await expect.element(page.getByText(message)).toBeVisible()
+  })
+
+  it('choosing an accent saves it, and a failed save explains it', async () => {
+    const chosen: string[] = []
+    await setup(undefined, (accent) => {
+      chosen.push(accent)
+      return Result.err(new StorageUnavailable({ key: 'k' }))
+    })
+    await page.getByRole('radio', { name: 'Violet' }).click()
+    expect(chosen).toEqual(['violet'])
+    await expect
+      .element(
+        page.getByText(
+          'This browser blocks saving. This theme lasts until you close the app.',
+        ),
+      )
+      .toBeVisible()
   })
 
   it('backup import reports invalid JSON, then safely adds copies and retains existing notes', async () => {

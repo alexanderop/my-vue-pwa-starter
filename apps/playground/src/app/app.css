@@ -364,7 +364,28 @@ h1 {
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
-.theme-picker label {
+.accent-picker {
+  margin: 22px 0 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.accent-picker legend {
+  margin-bottom: 12px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.accent-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+.theme-picker label,
+.accent-picker label {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -377,12 +398,17 @@ h1 {
   color: var(--color-muted);
   cursor: pointer;
 }
-.theme-picker label.selected {
+.accent-picker label {
+  padding: 16px 8px;
+}
+.theme-picker label.selected,
+.accent-picker label.selected {
   color: var(--color-primary);
   border-color: var(--color-primary);
   background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface));
 }
-.theme-picker input {
+.theme-picker input,
+.accent-picker input {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -391,7 +417,8 @@ h1 {
   cursor: pointer;
   margin: 0;
 }
-.theme-picker label:has(input:focus-visible) {
+.theme-picker label:has(input:focus-visible),
+.accent-picker label:has(input:focus-visible) {
   outline: 2px solid var(--color-primary);
   outline-offset: 3px;
 }
@@ -513,7 +540,8 @@ h1 {
   .settings-card {
     padding: 21px !important;
   }
-  .theme-picker {
+  .theme-picker,
+  .accent-picker {
     gap: 8px;
   }
   .update-notice {
