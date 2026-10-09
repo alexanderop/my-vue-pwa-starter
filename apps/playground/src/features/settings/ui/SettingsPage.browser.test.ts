@@ -38,7 +38,7 @@ describe('SettingsPage backups', () => {
       props: {
         theme: 'system',
         setTheme,
-        accent: 'teal',
+        accent: 'blue',
         setAccent,
         service,
         pwa: {

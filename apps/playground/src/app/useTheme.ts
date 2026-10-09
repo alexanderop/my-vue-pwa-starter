@@ -3,7 +3,7 @@ import * as v from 'valibot'
 import { useLocalStorage, useMediaQuery } from '@starter/composables'
 
 const themeSchema = v.picklist(['system', 'light', 'dark'])
-const accentSchema = v.picklist(['teal', 'violet', 'pink', 'sand'])
+const accentSchema = v.picklist(['blue', 'teal', 'violet', 'pink', 'sand'])
 
 export function useTheme() {
   const { state: theme, set: setTheme } = useLocalStorage(
@@ -14,7 +14,7 @@ export function useTheme() {
   const { state: accent, set: setAccent } = useLocalStorage(
     'fieldnotes-accent',
     accentSchema,
-    { fallback: 'teal' },
+    { fallback: 'blue' },
   )
   const systemDark = useMediaQuery('(prefers-color-scheme: dark)')
   const dark = computed(

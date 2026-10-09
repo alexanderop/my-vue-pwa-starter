@@ -2,17 +2,8 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useDocumentVisibility, useEventListener } from '@starter/composables'
 import { onBeforeRouteLeave } from 'vue-router'
+import { ArrowUpRight, Pin, Plus, Search, Trash2 } from '@lucide/vue'
 import {
-  ArrowUpRight,
-  FileText,
-  NotebookPen,
-  Pin,
-  Plus,
-  Search,
-  Trash2,
-} from '@lucide/vue'
-import {
-  UiBadge,
   UiButton,
   UiCard,
   UiDialog,
@@ -315,13 +306,8 @@ onUnmounted(() => {
       ><template #icon
         ><div class="empty-art" aria-hidden="true">
           <div class="paper-back" />
-          <div class="paper-front">
-            <NotebookPen :size="30" stroke-width="1.3" /><i /><i /><i />
-          </div>
-          <span class="sparkle sparkle-one">✦</span
-          ><span class="sparkle sparkle-two">✧</span>
-        </div></template
-      ><UiButton variant="secondary" @click="open()"
+          <div class="paper-front"><i /><i /><i /><i /></div></div></template
+      ><UiButton @click="open()"
         >Write your first note<ArrowUpRight
           :size="16"
           aria-hidden="true" /></UiButton
@@ -355,18 +341,15 @@ onUnmounted(() => {
             @click="open(note)"
           >
             <div class="note-card-top">
-              <FileText :size="16" aria-hidden="true" /><UiBadge
-                v-if="note.pinned"
-                >Pinned</UiBadge
-              >
+              <time :datetime="new Date(note.updatedAt).toISOString()">{{
+                formatDate(note.updatedAt)
+              }}</time
+              ><span v-if="note.pinned" class="note-pinned">Pinned</span>
             </div>
             <h3>{{ note.title }}</h3>
             <p>{{ note.body || 'A little space to come back to.' }}</p>
           </button>
           <div class="note-card-footer">
-            <time :datetime="new Date(note.updatedAt).toISOString()">{{
-              formatDate(note.updatedAt)
-            }}</time>
             <div class="note-actions">
               <UiButton
                 v-if="showingTrash"
@@ -378,6 +361,7 @@ onUnmounted(() => {
               <UiIconButton
                 v-else
                 :label="`${note.pinned ? 'Unpin' : 'Pin'} ${note.title}`"
+                :class="{ 'is-pinned': note.pinned }"
                 :disabled="pending"
                 @click="pin(note)"
                 ><Pin
@@ -463,7 +447,7 @@ onUnmounted(() => {
         </div>
       </form>
       <template #footer
-        ><span class="editor-hint">{{
+        ><span class="editor-hint" :class="{ 'is-dirty': dirty }">{{
           dirty ? 'Unsaved changes' : 'Stored on this device'
         }}</span
         ><UiButton variant="ghost" :disabled="pending" @click="close"
