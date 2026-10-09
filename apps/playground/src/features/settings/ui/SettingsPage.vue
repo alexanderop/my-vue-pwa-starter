@@ -175,9 +175,18 @@ const themes = [
             :value="item.value"
             :checked="theme === item.value"
             @change="chooseTheme(item.value)"
-          /><component :is="item.icon" :size="22" aria-hidden="true" /><span>{{
-            item.label
-          }}</span></label
+          /><span
+            class="theme-swatch"
+            :data-theme-swatch="item.value"
+            aria-hidden="true"
+            ><i v-if="item.value !== 'dark'" class="light" /><i
+              v-if="item.value !== 'light'"
+              class="dark" /></span
+          ><span class="theme-option"
+            ><component :is="item.icon" :size="16" aria-hidden="true" />{{
+              item.label
+            }}</span
+          ></label
         >
       </fieldset>
       <p role="status" class="muted" data-testid="theme-status">
