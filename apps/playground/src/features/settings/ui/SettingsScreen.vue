@@ -24,6 +24,10 @@ defineSlots<{ default(): unknown }>()
   padding: 14px 0 35px;
 }
 .screen-header {
+  position: sticky;
+  top: var(--ui-app-header-height);
+  z-index: 10;
+  background: var(--color-background);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
