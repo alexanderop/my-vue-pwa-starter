@@ -1,9 +1,6 @@
 import { computed, watchEffect } from 'vue'
-import * as v from 'valibot'
 import { useLocalStorage, useMediaQuery } from '@starter/composables'
-
-const themeSchema = v.picklist(['system', 'light', 'dark'])
-const accentSchema = v.picklist(['blue', 'teal', 'violet', 'pink', 'sand'])
+import { accentSchema, themeSchema } from '../features/settings'
 
 export function useTheme() {
   const { state: theme, set: setTheme } = useLocalStorage(

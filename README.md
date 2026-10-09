@@ -102,7 +102,7 @@ This checks the deployment path, service-worker scope, mobile layout, route relo
 
 Expected failures are return values, not exceptions. Repositories and services return `Result<T, E>` from `@starter/result`, and the UI checks `result.isErr()` before reading `result.value`. `Result.gen` composes steps in order and stops at the first error; `Result.tryPromise` turns a thrown exception into a typed error at the service boundary.
 
-Backup import and export show the full pattern. `features/notes/domain/backup.ts` defines one `TaggedError` class per failure, `importBackup` chains the size check, file read, JSON parse, validation, and write with `Result.gen`, and `SettingsPage.vue` turns the outcome into a message with `.match` and `matchError`. TypeScript rejects the page if a new backup error has no message.
+Backup import and export show the full pattern. `features/notes/domain/backup.ts` defines one `TaggedError` class per failure, `importBackup` chains the size check, file read, JSON parse, validation, and write with `Result.gen`, and `ExportPage.vue` and `ImportPage.vue` turn the outcome into a message with `.match` and `matchError`. TypeScript rejects the page if a new backup error has no message.
 
 ## Credits
 

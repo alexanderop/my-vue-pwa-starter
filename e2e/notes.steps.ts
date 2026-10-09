@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { createBdd } from 'playwright-bdd'
+import { openSetting } from './settings'
 
 const { Given, When, Then } = createBdd()
 
@@ -94,11 +95,11 @@ Then('I can postpone the update', async ({ page }) => {
     page.getByRole('button', { name: 'Update now', exact: true }),
   ).toBeVisible()
   await page.getByRole('button', { name: 'Later', exact: true }).click()
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await openSetting(page, 'Updates & offline')
   await expect(page.getByText('Version 1', { exact: true })).toBeVisible()
 })
 When('I accept the update', async ({ page }) => {
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await openSetting(page, 'Updates & offline')
   await page
     .getByRole('button', { name: 'Check for updates', exact: true })
     .click()
@@ -107,7 +108,7 @@ When('I accept the update', async ({ page }) => {
 Then(
   'the notebook runs version {string}',
   async ({ page }, version: string) => {
-    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await openSetting(page, 'Updates & offline')
     await expect(
       page.getByText(`Version ${version}`, { exact: true }),
     ).toBeVisible()
@@ -145,6 +146,7 @@ When(
   async ({ page, context, request }) => {
     const updater = await context.newPage()
     await updater.goto('/#/settings')
+    await openSetting(updater, 'Updates & offline')
     await expect(updater.getByText('Version 1', { exact: true })).toBeVisible()
     await request.post('/__test/version?value=2')
     await updater
@@ -161,7 +163,7 @@ When(
 When('I save the preserved draft and update this tab', async ({ page }) => {
   await page.getByRole('button', { name: 'Save note', exact: true }).click()
   await expect(page.getByRole('dialog')).not.toBeVisible()
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await openSetting(page, 'Updates & offline')
   await expect(page.getByText('Version 1', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Update now', exact: true }).click()
 })
@@ -198,7 +200,7 @@ Then('the mobile notebook fits the screen', async ({ page }) => {
   await page.getByRole('button', { name: 'Cancel', exact: true }).click()
 })
 When('I choose the dark theme and reload', async ({ page }) => {
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await openSetting(page, 'Appearance')
   await page.getByRole('radio', { name: 'Dark', exact: true }).check()
   await page.reload()
 })

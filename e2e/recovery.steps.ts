@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test'
 import { createBdd } from 'playwright-bdd'
+import { openSetting } from './settings'
 const { When, Then } = createBdd()
 When(
   'two tabs save different edits to the same note',
@@ -108,7 +109,7 @@ Then('the Settings skip link preserves its route', async ({ page }) => {
 Then(
   'I can download and import my backup without replacing the original',
   async ({ page }) => {
-    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await openSetting(page, 'Export backup')
     const downloadPromise = page.waitForEvent('download')
     await page
       .getByRole('button', { name: 'Export backup', exact: true })
@@ -116,6 +117,10 @@ Then(
     const download = await downloadPromise
     const file = await download.path()
     if (!file) throw new Error('Backup download missing')
+    await expect(page.getByTestId('backup-status')).toContainText(
+      'Backup download started: 1 note',
+    )
+    await openSetting(page, 'Import backup')
     await page.locator('input[type=file]').setInputFiles(file)
     await expect(
       page.getByText('Imported 1 note as new copies.', { exact: false }),

@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import NotesPage from '../features/notes/ui/NotesPage.vue'
-import SettingsPage from '../features/settings/ui/SettingsPage.vue'
 import { createIndexedDbNotes, createNotesService } from '../features/notes'
+import { settingsRoute } from '../features/settings'
 
 export function createApplication() {
   const repository = createIndexedDbNotes({ indexedDB: window.indexedDB })
@@ -25,11 +25,7 @@ export function createApplication() {
         name: 'notes',
         component: NotesPage,
       },
-      {
-        path: '/settings',
-        name: 'settings',
-        component: SettingsPage,
-      },
+      settingsRoute,
       { path: '/:pathMatch(.*)*', redirect: '/' },
     ],
   })

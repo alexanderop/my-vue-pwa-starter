@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { NotebookPen, Settings2, BookOpen, WifiOff } from '@lucide/vue'
 import { AppShell, AppNavigation, UiButton, UiBadge } from '@starter/ui'
 import type { NotesService } from '../features/notes'
+import { settingsPropsFor, type SettingsContext } from '../features/settings'
 import { usePwa } from '../platform/pwa/usePwa'
 import { useTheme } from './useTheme'
 const { notes } = defineProps<{ notes: NotesService }>()
@@ -16,25 +17,33 @@ const items = [
   { id: 'notes', label: 'Notes', icon: NotebookPen },
   { id: 'settings', label: 'Settings', icon: Settings2 },
 ]
-// Each route receives only the props it declares.
-const pageProps = computed(() =>
-  route.name === 'settings'
-    ? {
-        service: notes,
-        theme: theme.value,
-        setTheme,
-        accent: accent.value,
-        setAccent,
-        pwa,
-      }
-    : {
-        service: notes,
-        onBusyChange: (value: boolean) => {
-          busy.value = value
-        },
-      },
+function onBusyChange(value: boolean) {
+  busy.value = value
+}
+const settingsContext = computed<SettingsContext>(() => ({
+  service: notes,
+  theme: theme.value,
+  setTheme,
+  accent: accent.value,
+  setAccent,
+  pwa,
+  onBusyChange,
+}))
+// An item is active when its destination lives in the current top-level route.
+const active = computed(
+  () =>
+    items.find(
+      ({ id }) => router.resolve({ name: id }).matched[0] === route.matched[0],
+    )?.id ?? 'notes',
 )
-const active = computed(() => String(route.name ?? 'notes'))
+// Each route receives only the props its page declares.
+const pageProps = computed(
+  () =>
+    settingsPropsFor(route.name, settingsContext.value) ?? {
+      service: notes,
+      onBusyChange,
+    },
+)
 function navigate(id: string) {
   if (route.name === id) {
     window.scrollTo({ top: 0, behavior: 'instant' })

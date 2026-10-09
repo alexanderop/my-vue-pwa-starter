@@ -1,16 +1,15 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { accents } from '../apps/playground/src/features/settings/domain/appearance'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const features = 'apps/playground/src/features'
 
 // Known violations. Each one runs as `it.fails`, so fixing it turns the test red
 // until the entry is removed here.
-const featuresWithoutEntry = new Set(['settings'])
 const oversizedComponents = new Set([
   'apps/playground/src/features/notes/ui/NotesPage.vue',
-  'apps/playground/src/features/settings/ui/SettingsPage.vue',
 ])
 
 function sourceFiles(dir: string, extensions: readonly string[]) {
@@ -37,19 +36,9 @@ describe('given the feature folders', () => {
   const hasEntry = (name: string) =>
     existsSync(`${root}${features}/${name}/index.ts`)
 
-  it.each(names.filter((name) => !featuresWithoutEntry.has(name)))(
-    'should expose a public index.ts in %s',
-    (name) => {
-      expect(hasEntry(name)).toBe(true)
-    },
-  )
-
-  it.fails.each([...featuresWithoutEntry])(
-    'should expose a public index.ts in %s (known violation)',
-    (name) => {
-      expect(hasEntry(name)).toBe(true)
-    },
-  )
+  it.each(names)('should expose a public index.ts in %s', (name) => {
+    expect(hasEntry(name)).toBe(true)
+  })
 })
 
 describe('given the app components', () => {
@@ -72,6 +61,18 @@ describe('given the app components', () => {
     'should keep %s under 300 lines (known violation)',
     (file) => {
       expect(lineCount(file)).toBeLessThan(300)
+    },
+  )
+})
+
+describe('given the accent registry', () => {
+  const css = read('packages/ui/src/styles/index.css')
+
+  it.each(accents.map((accent) => accent.id))(
+    'should style the %s accent in the UI package',
+    (id) => {
+      // blue is the :root default, so it also appears as a plain selector.
+      expect(css).toContain(`[data-accent='${id}']`)
     },
   )
 })
