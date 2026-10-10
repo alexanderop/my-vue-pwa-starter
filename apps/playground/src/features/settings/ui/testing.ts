@@ -44,6 +44,7 @@ export async function renderSettings(
     pwa: {
       installed: { value: false },
       canInstall: { value: false },
+      offlineSupported: { value: true },
       offlineReady: { value: true },
       updateAvailable: { value: false },
       checking: { value: false },

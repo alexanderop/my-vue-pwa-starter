@@ -5,6 +5,7 @@ import { UiBadge } from '@starter/ui'
 import type { Accent, Theme } from '../domain/appearance'
 import type { Language } from '../domain/language'
 import type { AppCapabilities } from '../ports/settings'
+import { offlineStatus } from './offlineStatus'
 import { routeNameFor, sectionTitle, settingsGroups } from './sections'
 import SettingsGroup from './SettingsGroup.vue'
 import SettingsRow from './SettingsRow.vue'
@@ -28,7 +29,7 @@ const { t } = useTranslation()
         <span>{{ t('app.tagline') }}</span>
       </div>
       <UiBadge :tone="pwa.offlineReady.value ? 'success' : 'neutral'">{{
-        pwa.offlineReady.value ? t('app.offlineReady') : t('settings.preparing')
+        offlineStatus(pwa, t)
       }}</UiBadge>
     </div>
 

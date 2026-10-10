@@ -5,6 +5,7 @@ import { Check, Info, RefreshCw, Wifi } from '@lucide/vue'
 import { UiButton } from '@starter/ui'
 import type { AppCapabilities } from '../ports/settings'
 import { appVersion } from './appVersion'
+import { offlineStatus } from './offlineStatus'
 import SettingsGroup from './SettingsGroup.vue'
 import SettingsRow from './SettingsRow.vue'
 import SettingsScreen from './SettingsScreen.vue'
@@ -19,6 +20,12 @@ const title = computed(() => {
 const status = computed(() =>
   pwa.status.value ? t(`settings.updates.status.${pwa.status.value}`) : '',
 )
+const offlineDescription = computed(() => {
+  if (pwa.offlineReady.value) return t('settings.updates.offlineSaved')
+  return pwa.offlineSupported.value
+    ? t('settings.updates.offlinePending')
+    : t('settings.updates.offlineDevBuild')
+})
 </script>
 <template>
   <SettingsScreen :title="t('settings.updates.title')">
@@ -36,16 +43,8 @@ const status = computed(() =>
         :icon="Wifi"
         :tone="pwa.offlineReady.value ? 'success' : 'muted'"
         :label="t('settings.updates.offlineUse')"
-        :description="
-          pwa.offlineReady.value
-            ? t('settings.updates.offlineSaved')
-            : t('settings.updates.offlinePending')
-        "
-        :value="
-          pwa.offlineReady.value
-            ? t('app.offlineReady')
-            : t('settings.preparing')
-        "
+        :description="offlineDescription"
+        :value="offlineStatus(pwa, t)"
       />
       <SettingsRow
         :icon="Info"

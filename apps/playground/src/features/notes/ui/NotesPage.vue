@@ -68,6 +68,10 @@ const filtered = computed(() => {
         Number(b.pinned) - Number(a.pinned) || b.updatedAt - a.updatedAt,
     )
 })
+const visibleCount = computed(
+  () => (showingTrash.value ? trash.value : notes.value).length,
+)
+const searching = computed(() => query.value.trim() !== '')
 const pinned = computed(() => filtered.value.filter((note) => note.pinned))
 const ordinary = computed(() => filtered.value.filter((note) => !note.pinned))
 const groups = computed(() =>
@@ -293,8 +297,24 @@ onUnmounted(() => {
           ? t('notes.backToNotes')
           : t('notes.trash', { n: trash.length })
       }}</UiButton>
-      <span class="note-count">{{ t('notes.count', notes.length) }}</span>
+      <span class="note-count">{{
+        showingTrash
+          ? t('notes.trashCount', visibleCount)
+          : t('notes.count', visibleCount)
+      }}</span>
     </div>
+    <p v-if="searching && filtered.length" class="search-summary" role="status">
+      <span>{{
+        t('notes.searchSummary', {
+          shown: filtered.length,
+          total: visibleCount,
+          query: query.trim(),
+        })
+      }}</span
+      ><UiButton size="sm" variant="ghost" @click="query = ''">{{
+        t('notes.searchClear')
+      }}</UiButton>
+    </p>
     <div v-if="refreshError" class="inline-error" role="alert">
       <span>{{ noteErrorText(refreshError, t) }}</span
       ><UiButton size="sm" variant="secondary" @click="refresh">{{
@@ -321,12 +341,14 @@ onUnmounted(() => {
       }}</span></UiEmptyState
     >
     <UiEmptyState
+      v-else-if="showingTrash && !trash.length && !refreshError"
+      :title="t('notes.noResults.trashEmpty')"
+      :description="t('notes.noResults.trashEmptyDescription')"
+      ><template #icon><Trash2 :size="28" aria-hidden="true" /></template
+    ></UiEmptyState>
+    <UiEmptyState
       v-else-if="!filtered.length && !refreshError"
-      :title="
-        showingTrash && !trash.length
-          ? t('notes.noResults.trashEmpty')
-          : t('notes.noResults.title')
-      "
+      :title="t('notes.noResults.title')"
       :description="t('notes.noResults.description')"
       ><template #icon><Search :size="28" aria-hidden="true" /></template
       ><UiButton variant="ghost" @click="query = ''">{{
@@ -350,10 +372,7 @@ onUnmounted(() => {
             <div class="note-card-top">
               <time :datetime="new Date(note.updatedAt).toISOString()">{{
                 formatDate(note.updatedAt)
-              }}</time
-              ><span v-if="note.pinned" class="note-pinned">{{
-                t('notes.card.pinned')
-              }}</span>
+              }}</time>
             </div>
             <h3>{{ note.title }}</h3>
             <p>{{ note.body || t('notes.card.emptyBody') }}</p>
@@ -503,18 +522,21 @@ onUnmounted(() => {
       ></UiDialog
     >
     <div v-if="toast" class="toast-position">
-      <UiButton
-        v-if="undoNote"
-        variant="secondary"
-        :disabled="pending"
-        @click="restore(undoNote)"
-        >{{ t('notes.toast.undo') }}</UiButton
-      >
       <UiToast
         :message="t(`notes.toast.${toast}`)"
         :dismiss-label="t('app.dismissNotification')"
         @dismiss="toast = null"
-      />
+        ><template v-if="undoNote" #action
+          ><UiButton
+            size="sm"
+            variant="ghost"
+            :disabled="pending"
+            @click="restore(undoNote)"
+            >{{ t('notes.toast.undo') }}</UiButton
+          ></template
+        ></UiToast
+      >
+      >
     </div>
   </section>
 </template>

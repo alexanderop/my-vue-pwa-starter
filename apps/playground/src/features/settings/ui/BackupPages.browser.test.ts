@@ -85,6 +85,29 @@ describe('given the Import backup page', () => {
     expect(result.value[0]?.title).toBe('Keep me')
   })
 
+  it('should say an empty backup has nothing to import instead of reporting success', async () => {
+    const { service } = await renderSettings('/settings/import')
+    await service.create({ title: 'Keep me', body: '' })
+    await page
+      .getByLabelText('Choose a Fieldnotes backup')
+      .upload(
+        new File(
+          [JSON.stringify({ format: 'fieldnotes', version: 1, notes: [] })],
+          'empty.json',
+          { type: 'application/json' },
+        ),
+      )
+    await expect
+      .element(page.getByRole('alert'))
+      .toHaveTextContent('This backup has no notes to import.')
+    expect(
+      page.getByTestId('backup-status').element().textContent,
+    ).not.toContain('Imported')
+    const result = await service.list()
+    assert(result.isOk(), 'Unable to read existing notes')
+    expect(result.value).toHaveLength(1)
+  })
+
   it('should report busy while importing and idle afterwards', async () => {
     const busy: boolean[] = []
     const { service } = await renderSettings('/settings/import', {

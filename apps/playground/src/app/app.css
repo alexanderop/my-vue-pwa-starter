@@ -140,6 +140,16 @@ h1 {
 .search-field input {
   padding-left: 36px;
 }
+.search-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
 .note-count {
   margin-left: auto;
   font-family: var(--font-mono);
@@ -284,9 +294,6 @@ h1 {
   text-transform: uppercase;
   color: var(--color-muted);
 }
-.note-pinned {
-  color: var(--color-pin);
-}
 .note-card h3 {
   font-size: 17px;
   font-weight: 600;
@@ -379,6 +386,7 @@ h1 {
   left: 50%;
   transform: translateX(-50%);
   z-index: 60;
+  width: max-content;
   max-width: calc(100% - 32px);
 }
 .muted {
@@ -457,7 +465,8 @@ h1 {
     flex: 1;
   }
   .note-count {
-    display: none;
+    flex-basis: 100%;
+    margin-left: 0;
   }
   .notes-grid {
     grid-template-columns: 1fr;

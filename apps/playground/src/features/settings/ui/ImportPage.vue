@@ -35,7 +35,10 @@ async function importBackup(event: Event) {
       try {
         ;(await service.importBackup(file)).match({
           ok: (count) => {
-            backup.outcome.value = () => t('settings.import.imported', count)
+            if (count === 0)
+              backup.failure.value = () => t('settings.import.empty')
+            else
+              backup.outcome.value = () => t('settings.import.imported', count)
           },
           err: (error) => {
             backup.failure.value = () => errorMessage(error)

@@ -42,6 +42,7 @@ describe('given the Settings hub', () => {
       pwa: {
         installed: { value: true },
         canInstall: { value: false },
+        offlineSupported: { value: true },
         offlineReady: { value: false },
         updateAvailable: { value: false },
         checking: { value: false },
@@ -56,6 +57,28 @@ describe('given the Settings hub', () => {
     await expect
       .element(page.getByText(t('settings.preparing'), { exact: true }))
       .toBeVisible()
+  })
+
+  it('should show Unavailable instead of Preparing when offline use is not supported', async () => {
+    await renderSettings('/settings', {
+      pwa: {
+        installed: { value: false },
+        canInstall: { value: false },
+        offlineSupported: { value: false },
+        offlineReady: { value: false },
+        updateAvailable: { value: false },
+        checking: { value: false },
+        status: { value: null },
+        install: async () => {},
+        checkForUpdates: async () => {},
+      },
+    })
+    await expect
+      .element(page.getByText(t('settings.unavailable'), { exact: true }))
+      .toBeVisible()
+    await expect
+      .element(page.getByText(t('settings.preparing'), { exact: true }))
+      .not.toBeInTheDocument()
   })
 
   describe('when opening a row', () => {
@@ -100,6 +123,7 @@ describe('given the Updates page', () => {
       pwa: {
         installed: { value: false },
         canInstall: { value: false },
+        offlineSupported: { value: true },
         offlineReady: { value: true },
         updateAvailable: { value: false },
         checking: { value: false },
@@ -129,6 +153,7 @@ describe('given the Add to Home Screen page', () => {
       pwa: {
         installed: { value: false },
         canInstall: { value: true },
+        offlineSupported: { value: true },
         offlineReady: { value: true },
         updateAvailable: { value: false },
         checking: { value: false },

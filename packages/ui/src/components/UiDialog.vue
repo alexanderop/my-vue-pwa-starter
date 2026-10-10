@@ -21,9 +21,18 @@ defineSlots<{ default(): unknown; footer?(): unknown }>()
 const open = defineModel<boolean>('open', { default: false })
 const descriptionId = useId()
 const returnFocus = ref<HTMLElement>()
-function captureFocus() {
+// Reka focuses the first tabbable element (the close button) unless a field opts in with `autofocus`.
+function captureFocus(event: Event) {
   if (document.activeElement instanceof HTMLElement)
     returnFocus.value = document.activeElement
+  const preferred =
+    event.target instanceof HTMLElement
+      ? event.target.querySelector<HTMLElement>('[autofocus]')
+      : null
+  if (preferred) {
+    event.preventDefault()
+    preferred.focus()
+  }
 }
 function restoreFocus(event: Event) {
   const target = returnFocus.value?.isConnected

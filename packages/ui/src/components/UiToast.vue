@@ -11,6 +11,7 @@ const {
   dismissLabel: string
 }>()
 defineEmits<{ dismiss: [] }>()
+defineSlots<{ action?(): unknown }>()
 </script>
 <template>
   <div
@@ -18,9 +19,13 @@ defineEmits<{ dismiss: [] }>()
     :class="`ui-toast--${tone}`"
     :role="tone === 'error' ? 'alert' : 'status'"
   >
-    <span>{{ message }}</span
-    ><UiIconButton :label="dismissLabel" @click="$emit('dismiss')"
-      ><X :size="16"
-    /></UiIconButton>
+    <span>{{ message }}</span>
+    <div class="ui-toast__actions">
+      <slot name="action" /><UiIconButton
+        :label="dismissLabel"
+        @click="$emit('dismiss')"
+        ><X :size="16"
+      /></UiIconButton>
+    </div>
   </div>
 </template>

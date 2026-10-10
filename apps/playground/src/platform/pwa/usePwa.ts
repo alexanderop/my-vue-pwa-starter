@@ -17,6 +17,8 @@ function isInstallPrompt(event: Event): event is InstallPrompt {
 
 export function usePwa(busy: Ref<boolean>) {
   const online = useOnline()
+  // The service worker only runs in production builds.
+  const offlineSupported = 'serviceWorker' in navigator && import.meta.env.PROD
   const offlineReady = ref(false)
   const updateState = ref<'current' | 'waiting' | 'reload'>('current')
   const deferred = ref(false)
@@ -98,7 +100,7 @@ export function usePwa(busy: Ref<boolean>) {
     prompt.value = null
   })
   onMounted(() => {
-    if (!('serviceWorker' in navigator) || !import.meta.env.PROD) return
+    if (!offlineSupported) return
     scope.run(() =>
       useEventListener(navigator.serviceWorker, 'controllerchange', () => {
         const previous = controller
@@ -133,6 +135,7 @@ export function usePwa(busy: Ref<boolean>) {
   })
   return {
     online,
+    offlineSupported: ref(offlineSupported),
     offlineReady,
     updateAvailable: computed(() => updateState.value !== 'current'),
     deferred,

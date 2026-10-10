@@ -43,6 +43,9 @@ export const de: Catalog = {
     trash: 'Papierkorb ({n})',
     backToNotes: 'Zurück zu den Notizen',
     count: '{n} Notiz | {n} Notizen',
+    trashCount: '{n} Notiz im Papierkorb | {n} Notizen im Papierkorb',
+    searchSummary: '{shown} von {total} für „{query}“',
+    searchClear: 'Zurücksetzen',
     tryAgain: 'Erneut versuchen',
     loading: 'Dein Notizbuch wird geöffnet…',
     empty: {
@@ -55,6 +58,8 @@ export const de: Catalog = {
     noResults: {
       title: 'Keine Gedanken gefunden.',
       trashEmpty: 'Der Papierkorb ist leer.',
+      trashEmptyDescription:
+        'Gelöschte Notizen bleiben hier, bis du sie endgültig entfernst.',
       description: 'Versuch ein anderes Wort oder beginne eine neue Notiz.',
       clear: 'Suche löschen',
     },
@@ -69,7 +74,6 @@ export const de: Catalog = {
       unpin: '{title} lösen',
       delete: '{title} löschen',
       restore: 'Wiederherstellen',
-      pinned: 'Angeheftet',
       emptyBody: 'Ein kleiner Platz zum Zurückkommen.',
     },
     editor: {
@@ -136,6 +140,7 @@ export const de: Catalog = {
     title: 'Einstellungen',
     back: 'Einstellungen',
     preparing: 'Wird vorbereitet',
+    unavailable: 'Nicht verfügbar',
     privacy:
       'Deine Notizen bleiben auf diesem Gerät. Nichts wird irgendwohin gesendet.',
     groups: { device: 'Dieses Gerät', notes: 'Deine Notizen' },
@@ -209,6 +214,8 @@ export const de: Catalog = {
       offlineSaved: 'Die App ist für die Offline-Nutzung gespeichert.',
       offlinePending:
         'Öffne die Produktions-App einmal online, um die Offline-Nutzung vorzubereiten.',
+      offlineDevBuild:
+        'Die Offline-Nutzung ist nur im Produktions-Build verfügbar.',
       version: 'Version {version}',
       check: 'Nach Updates suchen',
       help: 'Wenn eine neue Version bereit ist, entscheidest du, wann aktualisiert wird. Ungespeicherte Entwürfe bleiben erhalten.',
@@ -268,7 +275,8 @@ export const de: Catalog = {
         'Wenn du dasselbe Backup zweimal importierst, entstehen Duplikate.',
       limits: 'Bis zu 5.000 Notizen und 10 MB pro Datei.',
       imported:
-        '{n} Notiz als neue Kopie importiert. Vorhandene Notizen wurden behalten. Gelöschte Notizen liegen im Papierkorb. | {n} Notizen als neue Kopien importiert. Vorhandene Notizen wurden behalten. Gelöschte Notizen liegen im Papierkorb.',
+        '{n} Notiz importiert. Deine vorhandenen Notizen wurden behalten. | {n} Notizen importiert. Deine vorhandenen Notizen wurden behalten.',
+      empty: 'Diese Sicherung enthält keine Notizen zum Importieren.',
       failed:
         'Das Backup konnte nicht importiert werden. Bitte versuch es noch einmal.',
       tooLarge: 'Wähle ein Backup unter 10 MB.',

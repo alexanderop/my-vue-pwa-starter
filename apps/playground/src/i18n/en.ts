@@ -42,6 +42,9 @@ export const en = {
     trash: 'Trash ({n})',
     backToNotes: 'Back to notes',
     count: '{n} note | {n} notes',
+    trashCount: '{n} note in Trash | {n} notes in Trash',
+    searchSummary: 'Showing {shown} of {total} for “{query}”',
+    searchClear: 'Clear',
     tryAgain: 'Try again',
     loading: 'Opening your notebook…',
     empty: {
@@ -54,6 +57,8 @@ export const en = {
     noResults: {
       title: 'No thoughts found.',
       trashEmpty: 'Trash is empty.',
+      trashEmptyDescription:
+        'Notes you delete stay here until you remove them for good.',
       description: 'Try a different word, or start a new note.',
       clear: 'Clear search',
     },
@@ -68,7 +73,6 @@ export const en = {
       unpin: 'Unpin {title}',
       delete: 'Delete {title}',
       restore: 'Restore',
-      pinned: 'Pinned',
       emptyBody: 'A little space to come back to.',
     },
     editor: {
@@ -133,6 +137,7 @@ export const en = {
     title: 'Settings',
     back: 'Settings',
     preparing: 'Preparing',
+    unavailable: 'Unavailable',
     privacy: 'Your notes stay on this device. Nothing is sent anywhere.',
     groups: { device: 'This device', notes: 'Your notes' },
     appearance: {
@@ -205,6 +210,7 @@ export const en = {
       offlineSaved: 'The app is saved for offline use.',
       offlinePending:
         'Open the production app online once to prepare offline use.',
+      offlineDevBuild: 'Offline use is only available in the production build.',
       version: 'Version {version}',
       check: 'Check for updates',
       help: 'When a new version is ready, you choose when to update. Unsaved drafts are kept.',
@@ -258,7 +264,8 @@ export const en = {
       duplicates: 'Importing the same backup twice creates duplicates.',
       limits: 'Up to 5,000 notes and 10 MB per file.',
       imported:
-        'Imported {n} note as new copies. Existing notes were kept. Trashed notes are in Trash. | Imported {n} notes as new copies. Existing notes were kept. Trashed notes are in Trash.',
+        'Imported {n} note. Your existing notes were kept. | Imported {n} notes. Your existing notes were kept.',
+      empty: 'This backup has no notes to import.',
       failed: 'The backup could not be imported. Please try again.',
       tooLarge: 'Choose a backup smaller than 10 MB.',
       unreadable: 'This file is not readable JSON. Choose a Fieldnotes backup.',
