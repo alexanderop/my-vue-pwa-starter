@@ -11,7 +11,12 @@ function requestOpen(value: boolean) {
 </script>
 <template>
   <UiButton @click="open = true">Open guarded sheet</UiButton>
-  <UiDialog :open="open" title="Guarded sheet" @update:open="requestOpen">
+  <UiDialog
+    :open="open"
+    title="Guarded sheet"
+    close-label="Close dialog"
+    @update:open="requestOpen"
+  >
     <p style="min-height: 120px">An unsaved draft stays here.</p>
     <p v-if="rejected" role="status">Close was rejected.</p>
     <template #footer

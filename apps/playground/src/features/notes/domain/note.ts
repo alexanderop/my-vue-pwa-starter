@@ -13,11 +13,25 @@ export type Note = Readonly<{
 }>
 
 export type NoteDraft = Readonly<{ title: string; body: string }>
-export type NoteError = Readonly<{
-  kind: 'validation' | 'storage' | 'conflict' | 'corrupt'
-  message: string
-  field?: 'title' | 'body'
-}>
+// The reason is the whole error: the UI translates it, and a validation
+// error also names the field to focus.
+const validationErrors = {
+  titleRequired: { reason: 'titleRequired', field: 'title' },
+  titleTooLong: { reason: 'titleTooLong', field: 'title' },
+  bodyTooLong: { reason: 'bodyTooLong', field: 'body' },
+} as const
+type ValidationReason = keyof typeof validationErrors
+export type NoteError =
+  | (typeof validationErrors)[ValidationReason]
+  | Readonly<{
+      reason:
+        | 'storageUnavailable'
+        | 'storageFailed'
+        | 'connectionClosed'
+        | 'blocked'
+        | 'conflict'
+        | 'corrupt'
+    }>
 export type NoteResult<T> = Result<T, NoteError>
 
 const timestampSchema = v.pipe(
@@ -38,26 +52,28 @@ export const noteSchema = v.object({
   revision: v.pipe(v.number(), v.integer(), v.minValue(1)),
 })
 
-const draftSchema = v.object({
-  title: v.pipe(
-    v.string(),
-    v.trim(),
-    v.minLength(1, 'Give your note a title.'),
-    v.maxLength(120, 'Keep the title under 121 characters.'),
-  ),
-  body: v.pipe(
-    v.string(),
-    v.maxLength(20_000, 'Keep the note under 20,001 characters.'),
-  ),
-})
+const draftSchema = v.object(
+  {
+    title: v.pipe(
+      v.string('titleRequired'),
+      v.trim(),
+      v.minLength(1, 'titleRequired'),
+      v.maxLength(120, 'titleTooLong'),
+    ),
+    body: v.pipe(v.string('bodyTooLong'), v.maxLength(20_000, 'bodyTooLong')),
+  },
+  'titleRequired',
+)
 
 export function parseDraft(draft: NoteDraft): NoteResult<NoteDraft> {
   const parsed = v.safeParse(draftSchema, draft)
-  return parsed.success
-    ? Result.ok(parsed.output)
-    : Result.err({
-        kind: 'validation',
-        message: parsed.issues[0].message,
-        field: parsed.issues[0].path?.[0]?.key === 'body' ? 'body' : 'title',
-      })
+  if (parsed.success) return Result.ok(parsed.output)
+  // Every action in draftSchema carries a ValidationReason as its message.
+  const reason = parsed.issues[0].message
+  return Result.err(
+    validationErrors[isValidationReason(reason) ? reason : 'titleRequired'],
+  )
 }
+
+const isValidationReason = (message: string): message is ValidationReason =>
+  Object.hasOwn(validationErrors, message)

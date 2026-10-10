@@ -27,7 +27,10 @@ describe('given a draft whose title is only whitespace', () => {
         const parsed = parseDraft({ title, body })
         expect(parsed).toMatchObject({
           status: 'error',
-          error: { kind: 'validation', field: 'title' },
+          error: {
+            reason: 'titleRequired',
+            field: 'title',
+          },
         })
       }),
     )
@@ -44,11 +47,20 @@ describe('given a body longer than 20,000 characters', () => {
           const parsed = parseDraft({ title, body })
           expect(parsed).toMatchObject({
             status: 'error',
-            error: { kind: 'validation', field: 'body' },
+            error: { reason: 'bodyTooLong', field: 'body' },
           })
         },
       ),
       { numRuns: 20 },
     )
+  })
+})
+
+describe('given a title longer than 120 characters', () => {
+  it('should reject it as too long rather than missing', () => {
+    expect(parseDraft({ title: 'x'.repeat(121), body: '' })).toMatchObject({
+      status: 'error',
+      error: { reason: 'titleTooLong', field: 'title' },
+    })
   })
 })

@@ -72,4 +72,40 @@ export default [
       'vue/prefer-true-attribute-shorthand': 'error',
     },
   },
+  {
+    // App text comes from the message catalogs in apps/playground/src/i18n.
+    files: ['apps/**/*.vue'],
+    rules: {
+      'vue/no-bare-strings-in-template': [
+        'error',
+        {
+          allowlist: [
+            ...'()[]{}<>,.:;!?&+-=*/#%|•·—'.split(''),
+            'fieldnotes',
+            '08:12',
+          ],
+          // Text props on any element or component, not only native ones.
+          attributes: {
+            '/.+/': [
+              'title',
+              'aria-label',
+              'aria-placeholder',
+              'aria-roledescription',
+              'aria-valuetext',
+              'alt',
+              'label',
+              'legend',
+              'description',
+              'placeholder',
+              'message',
+              'error',
+              'close-label',
+              'dismiss-label',
+              'skip-label',
+            ],
+          },
+        },
+      ],
+    },
+  },
 ]

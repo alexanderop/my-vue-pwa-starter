@@ -2,7 +2,7 @@
   "name": "my-vue-pwa-starter",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@12.10.1",
   "engines": {
     "node": ">=22.12.0"
   },

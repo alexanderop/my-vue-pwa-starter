@@ -5,6 +5,7 @@ import './app/app.css'
 import App from './app/App.vue'
 import AppErrorBoundary from './app/AppErrorBoundary.vue'
 import { createApplication } from './app/bootstrap'
+import { createAppI18n } from './i18n'
 
 const application = createApplication()
 const app = createApp({
@@ -13,7 +14,7 @@ const app = createApp({
       default: () => h(App, { notes: application.notes }),
     }),
 })
-app.use(application.router).mount('#app')
+app.use(application.router).use(createAppI18n()).mount('#app')
 function onPageHide(event: PageTransitionEvent) {
   if (!event.persisted) application.close()
 }

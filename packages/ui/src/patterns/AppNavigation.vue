@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 defineProps<{
+  label: string
   items: readonly { id: string; label: string; icon: Component }[]
   modelValue: string
 }>()
 defineEmits<{ 'update:modelValue': [value: string] }>()
 </script>
 <template>
-  <nav class="ui-navigation" aria-label="Main navigation">
+  <nav class="ui-navigation" :aria-label="label">
     <button
       v-for="item in items"
       :key="item.id"

@@ -2,17 +2,17 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { page } from 'vitest/browser'
 import { Result } from '@starter/result'
 import { StorageQuotaExceeded, StorageUnavailable } from '@starter/composables'
+import { t } from '../../../i18n/testing'
+import { accents } from '../domain/appearance'
 import { closeSettingsRepositories, renderSettings } from './testing'
 
 const quota = new StorageQuotaExceeded({ key: 'k' })
 const unavailable = new StorageUnavailable({ key: 'k' })
 const failures = [
-  [quota, 'Storage is full. This theme lasts until you close the app.'],
-  [
-    unavailable,
-    'This browser blocks saving. This theme lasts until you close the app.',
-  ],
+  [quota, t('settings.saveErrors.StorageQuotaExceeded')],
+  [unavailable, t('settings.saveErrors.StorageUnavailable')],
 ] as const
+const dark = t('settings.appearance.themes.dark')
 
 describe('given the Appearance page', () => {
   afterEach(closeSettingsRepositories)
@@ -26,7 +26,7 @@ describe('given the Appearance page', () => {
           return Result.ok()
         },
       })
-      await page.getByRole('radio', { name: 'Dark' }).click()
+      await page.getByRole('radio', { name: dark }).click()
       expect(chosen).toEqual(['dark'])
       await expect
         .element(page.getByTestId('theme-status'))
@@ -39,7 +39,7 @@ describe('given the Appearance page', () => {
         await renderSettings('/settings/appearance', {
           setTheme: () => Result.err(error),
         })
-        await page.getByRole('radio', { name: 'Dark' }).click()
+        await page.getByRole('radio', { name: dark }).click()
         await expect.element(page.getByText(message)).toBeVisible()
       },
     )
@@ -54,7 +54,9 @@ describe('given the Appearance page', () => {
           return Result.ok()
         },
       })
-      await page.getByRole('radio', { name: 'Violet' }).click()
+      await page
+        .getByRole('radio', { name: t('settings.appearance.accents.violet') })
+        .click()
       expect(chosen).toEqual(['violet'])
       await expect
         .element(page.getByTestId('theme-status'))
@@ -67,19 +69,30 @@ describe('given the Appearance page', () => {
         await renderSettings('/settings/appearance', {
           setAccent: () => Result.err(error),
         })
-        await page.getByRole('radio', { name: 'Pink' }).click()
+        await page
+          .getByRole('radio', { name: t('settings.appearance.accents.pink') })
+          .click()
         await expect.element(page.getByText(message)).toBeVisible()
       },
     )
 
     it('should offer every accent as a named radio', async () => {
       await renderSettings('/settings/appearance', { accent: 'teal' })
-      for (const name of ['Blue', 'Teal', 'Violet', 'Pink', 'Sand'])
+      for (const id of accents)
         await expect
-          .element(page.getByRole('radio', { name, exact: true }))
+          .element(
+            page.getByRole('radio', {
+              name: t(`settings.appearance.accents.${id}`),
+              exact: true,
+            }),
+          )
           .toBeInTheDocument()
       await expect
-        .element(page.getByRole('radio', { name: 'Teal' }))
+        .element(
+          page.getByRole('radio', {
+            name: t('settings.appearance.accents.teal'),
+          }),
+        )
         .toBeChecked()
     })
   })

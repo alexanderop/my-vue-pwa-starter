@@ -1,4 +1,6 @@
 export { accentSchema, themeSchema } from './domain/appearance'
+export { languageSchema } from './domain/language'
 export { settingsRoute } from './ui/routes'
 export { settingsPropsFor } from './ui/screens'
 export type { SettingsContext } from './ui/settingsContext'
+export type { UpdateStatus } from './ports/settings'

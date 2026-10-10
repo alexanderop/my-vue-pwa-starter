@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useTranslation } from '../../../i18n'
 const { busy, message } = defineProps<{
   busy: boolean
   message: string
   error: string
 }>()
-const text = computed(() =>
-  busy
-    ? 'Working on your backup. Keep this page open until it finishes…'
-    : message,
-)
+const { t } = useTranslation()
+const text = computed(() => (busy ? t('settings.backup.working') : message))
 </script>
 <template>
   <p

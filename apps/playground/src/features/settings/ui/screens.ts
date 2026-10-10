@@ -10,9 +10,10 @@ export const settingsScreens: readonly SettingsScreen[] = [
   {
     name: 'settings',
     path: '',
-    ...definePage(SettingsHub, ({ theme, accent, pwa }) => ({
+    ...definePage(SettingsHub, ({ theme, accent, language, pwa }) => ({
       theme,
       accent,
+      language,
       pwa,
     })),
   },

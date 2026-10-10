@@ -17,6 +17,7 @@ const body = ref('')
         ><UiDialog
           v-model:open="open"
           title="A space for your thoughts"
+          close-label="Close dialog"
           description="Saved on your device. Ready whenever you are."
           ><UiInput v-model="title" label="Title" /><UiTextarea
             v-model="body"

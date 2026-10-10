@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useDocumentVisibility, useEventListener } from '@starter/composables'
 import { onBeforeRouteLeave } from 'vue-router'
+import { useTranslation } from '../../../i18n'
 import { ArrowUpRight, Pin, Plus, Search, Trash2 } from '@lucide/vue'
 import {
   UiButton,
@@ -14,10 +15,13 @@ import {
   UiToast,
 } from '@starter/ui'
 import type { Note, NotesService } from '../index'
+import type { NoteError } from '../domain/note'
+import { noteErrorText } from './noteErrorText'
 import { useNotesSearch } from './useNotesSearch'
 
 const { service } = defineProps<{ service: NotesService }>()
 const emit = defineEmits<{ 'busy-change': [busy: boolean] }>()
+const { t, locale } = useTranslation()
 const notes = ref<readonly Note[]>([])
 const loading = ref(true)
 const pending = ref(false)
@@ -25,16 +29,20 @@ const query = useNotesSearch(service)
 const trash = ref<readonly Note[]>([])
 const showingTrash = ref(false)
 const undoNote = ref<Note | null>(null)
-const fieldErrors = ref<{ title?: string; body?: string }>({})
 const conflict = ref(false)
 const latest = ref<Note | null>(null)
 const reviewed = ref(false)
 const editor = ref<{ original: Note | null } | null>(null)
 const title = ref('')
 const body = ref('')
-const error = ref('')
-const refreshError = ref('')
-const toast = ref('')
+// Errors and toasts keep their code, so they re-translate if the language changes.
+const error = ref<NoteError | null>(null)
+const refreshError = ref<NoteError | null>(null)
+const toast = ref<'saved' | 'trashed' | 'deleted' | 'restored' | null>(null)
+const fieldError = (field: 'title' | 'body') =>
+  error.value && 'field' in error.value && error.value.field === field
+    ? noteErrorText(error.value, t)
+    : undefined
 const deleting = ref<Note | null>(null)
 let readVersion = 0
 let mounted = true
@@ -64,17 +72,21 @@ const pinned = computed(() => filtered.value.filter((note) => note.pinned))
 const ordinary = computed(() => filtered.value.filter((note) => !note.pinned))
 const groups = computed(() =>
   [
-    { label: 'Pinned', notes: pinned.value },
+    { id: 'pinned', label: t('notes.groups.pinned'), notes: pinned.value },
     {
-      label: pinned.value.length ? 'Everything else' : 'Your notes',
+      id: 'rest',
+      label: pinned.value.length
+        ? t('notes.groups.rest')
+        : t('notes.groups.all'),
       notes: ordinary.value,
     },
   ].filter((group) => group.notes.length),
 )
 const formatDate = (timestamp: number) =>
-  new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(
-    timestamp,
-  )
+  new Intl.DateTimeFormat(locale.value, {
+    month: 'short',
+    day: 'numeric',
+  }).format(timestamp)
 
 async function refresh() {
   const version = ++readVersion
@@ -83,32 +95,31 @@ async function refresh() {
   loading.value = false
   if (result.isOk()) {
     notes.value = result.value
-    refreshError.value = ''
+    refreshError.value = null
     const deleted = await service.listTrash()
     if (deleted.isOk() && mounted && version === readVersion)
       trash.value = deleted.value
-  } else refreshError.value = result.error.message
+  } else refreshError.value = result.error
 }
 function open(note: Note | null = null) {
   editor.value = { original: note }
   title.value = note?.title ?? ''
   body.value = note?.body ?? ''
-  fieldErrors.value = {}
   conflict.value = false
   reviewed.value = false
   latest.value = null
-  error.value = ''
+  error.value = null
 }
 function close() {
   if (pending.value) return
-  if (dirty.value && !window.confirm('Discard your unsaved changes?')) return
+  if (dirty.value && !window.confirm(t('notes.editor.discard'))) return
   editor.value = null
-  error.value = ''
+  error.value = null
 }
 async function reviewLatest() {
   const result = await service.exportData()
   if (result.isErr()) {
-    error.value = result.error.message
+    error.value = result.error
     return
   }
   latest.value =
@@ -126,8 +137,7 @@ function revisionBase(mode: 'normal' | 'copy' | 'replace' | Event) {
   if (mode === 'replace') return latest.value
   return editor.value?.original ?? null
 }
-async function showFieldError(field: 'title' | 'body', message: string) {
-  fieldErrors.value = { [field]: message }
+async function focusField(field: 'title' | 'body') {
   await nextTick()
   document.getElementById(`note-${field}`)?.focus()
 }
@@ -135,8 +145,7 @@ async function save(mode: 'normal' | 'copy' | 'replace' | Event = 'normal') {
   if (!editor.value || pending.value) return
   pending.value = true
   readVersion++
-  error.value = ''
-  fieldErrors.value = {}
+  error.value = null
   const original = revisionBase(mode)
   if (
     mode === 'replace' &&
@@ -151,10 +160,9 @@ async function save(mode: 'normal' | 'copy' | 'replace' | Event = 'normal') {
     : await service.create(draft)
   pending.value = false
   if (result.isErr()) {
-    error.value = result.error.message
-    conflict.value = result.error.kind === 'conflict'
-    if (result.error.field)
-      await showFieldError(result.error.field, result.error.message)
+    error.value = result.error
+    conflict.value = result.error.reason === 'conflict'
+    if ('field' in result.error) await focusField(result.error.field)
     return
   }
   notes.value = [
@@ -163,7 +171,7 @@ async function save(mode: 'normal' | 'copy' | 'replace' | Event = 'normal') {
   ]
   editor.value = null
   undoNote.value = null
-  toast.value = 'Note saved.'
+  toast.value = 'saved'
   await refresh()
 }
 async function pin(note: Note) {
@@ -173,7 +181,7 @@ async function pin(note: Note) {
   const result = await service.setPinned(note, !note.pinned)
   pending.value = false
   if (result.isErr()) {
-    refreshError.value = result.error.message
+    refreshError.value = result.error
     return
   }
   notes.value = notes.value.map((item) =>
@@ -183,7 +191,7 @@ async function pin(note: Note) {
 }
 function requestDelete(note: Note) {
   deleting.value = note
-  error.value = ''
+  error.value = null
 }
 async function remove() {
   const note = deleting.value
@@ -195,15 +203,13 @@ async function remove() {
     : await service.trash(note)
   pending.value = false
   if (result.isErr()) {
-    error.value = result.error.message
+    error.value = result.error
     return
   }
   deleting.value = null
   notes.value = notes.value.filter((item) => item.id !== note.id)
   undoNote.value = !showingTrash.value && result.value ? result.value : null
-  toast.value = showingTrash.value
-    ? 'Note permanently deleted.'
-    : 'Note moved to Trash.'
+  toast.value = showingTrash.value ? 'deleted' : 'trashed'
   await refresh()
 }
 async function restore(note: Note) {
@@ -212,11 +218,11 @@ async function restore(note: Note) {
   const result = await service.restore(note)
   pending.value = false
   if (result.isErr()) {
-    refreshError.value = result.error.message
+    refreshError.value = result.error
     return
   }
   undoNote.value = null
-  toast.value = 'Note restored.'
+  toast.value = 'restored'
   await refresh()
 }
 function shortcut(event: KeyboardEvent) {
@@ -248,7 +254,7 @@ watch(visibility, (value) => {
 })
 onBeforeRouteLeave(() => {
   if (pending.value) return false
-  return !dirty.value || window.confirm('Discard your unsaved changes?')
+  return !dirty.value || window.confirm(t('notes.editor.discard'))
 })
 onMounted(() => {
   void refresh()
@@ -263,72 +269,73 @@ onUnmounted(() => {
   <section class="page notes-page" aria-labelledby="notes-title">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">A PLACE TO BEGIN</p>
-        <h1 id="notes-title">Make room for a thought.</h1>
-        <p class="page-description">
-          Ideas, reminders, and the things worth keeping.
-        </p>
+        <p class="eyebrow">{{ t('notes.eyebrow') }}</p>
+        <h1 id="notes-title">{{ t('notes.title') }}</h1>
+        <p class="page-description">{{ t('notes.description') }}</p>
       </div>
       <UiButton class="new-note-button" @click="open()"
-        ><Plus :size="17" aria-hidden="true" />New note</UiButton
+        ><Plus :size="17" aria-hidden="true" />{{
+          t('notes.newNote')
+        }}</UiButton
       >
     </div>
     <div class="notes-toolbar">
       <div class="search-field">
         <Search :size="17" aria-hidden="true" /><UiInput
           v-model="query"
-          label="Search notes"
+          :label="t('notes.search.label')"
           type="search"
-          placeholder="Find a thought…"
+          :placeholder="t('notes.search.placeholder')"
         />
       </div>
       <UiButton variant="ghost" @click="showingTrash = !showingTrash">{{
-        showingTrash ? 'Back to notes' : `Trash (${trash.length})`
+        showingTrash
+          ? t('notes.backToNotes')
+          : t('notes.trash', { n: trash.length })
       }}</UiButton>
-      <span class="note-count"
-        >{{ notes.length }} {{ notes.length === 1 ? 'note' : 'notes' }}</span
-      >
+      <span class="note-count">{{ t('notes.count', notes.length) }}</span>
     </div>
     <div v-if="refreshError" class="inline-error" role="alert">
-      <span>{{ refreshError }}</span
-      ><UiButton size="sm" variant="secondary" @click="refresh"
-        >Try again</UiButton
-      >
+      <span>{{ noteErrorText(refreshError, t) }}</span
+      ><UiButton size="sm" variant="secondary" @click="refresh">{{
+        t('notes.tryAgain')
+      }}</UiButton>
     </div>
     <p v-if="loading" class="loading-state" role="status">
-      Opening your notebook…
+      {{ t('notes.loading') }}
     </p>
     <UiEmptyState
       v-else-if="!notes.length && !showingTrash && !refreshError"
       class="notebook-empty"
-      title="Good things start with a blank page."
-      description="A passing idea. A small reminder. Something just for you. Give it a place to land."
+      :title="t('notes.empty.title')"
+      :description="t('notes.empty.description')"
       ><template #icon
         ><div class="empty-art" aria-hidden="true">
           <div class="paper-back" />
           <div class="paper-front"><i /><i /><i /><i /></div></div></template
       ><UiButton @click="open()"
-        >Write your first note<ArrowUpRight
-          :size="16"
-          aria-hidden="true" /></UiButton
-      ><span class="empty-footnote"
-        >Saved on your device. Always yours.</span
-      ></UiEmptyState
+        >{{ t('notes.empty.action')
+        }}<ArrowUpRight :size="16" aria-hidden="true" /></UiButton
+      ><span class="empty-footnote">{{
+        t('notes.empty.footnote')
+      }}</span></UiEmptyState
     >
     <UiEmptyState
       v-else-if="!filtered.length && !refreshError"
       :title="
-        showingTrash && !trash.length ? 'Trash is empty.' : 'No thoughts found.'
+        showingTrash && !trash.length
+          ? t('notes.noResults.trashEmpty')
+          : t('notes.noResults.title')
       "
-      description="Try a different word, or start a new note."
+      :description="t('notes.noResults.description')"
       ><template #icon><Search :size="28" aria-hidden="true" /></template
-      ><UiButton variant="ghost" @click="query = ''"
-        >Clear search</UiButton
-      ></UiEmptyState
+      ><UiButton variant="ghost" @click="query = ''">{{
+        t('notes.noResults.clear')
+      }}</UiButton></UiEmptyState
     >
-    <div v-for="group in groups" :key="group.label" class="note-group">
+    <div v-for="group in groups" :key="group.id" class="note-group">
       <h2 class="section-label">
-        <Pin v-if="group.label === 'Pinned'" :size="13" aria-hidden="true" />{{
+        <Pin v-if="group.id === 'pinned'" :size="13" aria-hidden="true" />{{
           group.label
         }}<span>{{ group.notes.length }}</span>
       </h2>
@@ -336,7 +343,7 @@ onUnmounted(() => {
         <UiCard v-for="note in group.notes" :key="note.id" class="note-card"
           ><button
             class="note-open"
-            :aria-label="`Edit ${note.title}`"
+            :aria-label="t('notes.card.edit', { title: note.title })"
             :disabled="showingTrash"
             @click="open(note)"
           >
@@ -344,10 +351,12 @@ onUnmounted(() => {
               <time :datetime="new Date(note.updatedAt).toISOString()">{{
                 formatDate(note.updatedAt)
               }}</time
-              ><span v-if="note.pinned" class="note-pinned">Pinned</span>
+              ><span v-if="note.pinned" class="note-pinned">{{
+                t('notes.card.pinned')
+              }}</span>
             </div>
             <h3>{{ note.title }}</h3>
-            <p>{{ note.body || 'A little space to come back to.' }}</p>
+            <p>{{ note.body || t('notes.card.emptyBody') }}</p>
           </button>
           <div class="note-card-footer">
             <div class="note-actions">
@@ -356,11 +365,15 @@ onUnmounted(() => {
                 size="sm"
                 variant="secondary"
                 @click="restore(note)"
-                >Restore</UiButton
+                >{{ t('notes.card.restore') }}</UiButton
               >
               <UiIconButton
                 v-else
-                :label="`${note.pinned ? 'Unpin' : 'Pin'} ${note.title}`"
+                :label="
+                  t(note.pinned ? 'notes.card.unpin' : 'notes.card.pin', {
+                    title: note.title,
+                  })
+                "
                 :class="{ 'is-pinned': note.pinned }"
                 :disabled="pending"
                 @click="pin(note)"
@@ -368,7 +381,7 @@ onUnmounted(() => {
                   :size="15"
                   :fill="note.pinned ? 'currentColor' : 'none'" /></UiIconButton
               ><UiIconButton
-                :label="`Delete ${note.title}`"
+                :label="t('notes.card.delete', { title: note.title })"
                 :disabled="pending"
                 @click="requestDelete(note)"
                 ><Trash2 :size="15"
@@ -379,8 +392,13 @@ onUnmounted(() => {
     </div>
     <UiDialog
       :open="editor !== null"
-      :title="editor?.original ? 'Edit note' : 'New note'"
-      description="A little space for whatever is on your mind."
+      :title="
+        editor?.original
+          ? t('notes.editor.editTitle')
+          : t('notes.editor.newTitle')
+      "
+      :description="t('notes.editor.description')"
+      :close-label="t('app.closeDialog')"
       @update:open="
         (value) => {
           if (!value) close()
@@ -395,92 +413,92 @@ onUnmounted(() => {
         <UiInput
           id="note-title"
           v-model="title"
-          :error="fieldErrors.title"
-          label="Title"
-          placeholder="Give your thought a name"
+          :error="fieldError('title')"
+          :label="t('notes.editor.title')"
+          :placeholder="t('notes.editor.titlePlaceholder')"
           maxlength="120"
           :disabled="pending"
           autofocus
         /><UiTextarea
           id="note-body"
           v-model="body"
-          :error="fieldErrors.body"
-          label="Note"
-          placeholder="Start anywhere…"
+          :error="fieldError('body')"
+          :label="t('notes.editor.body')"
+          :placeholder="t('notes.editor.bodyPlaceholder')"
           rows="9"
           :disabled="pending"
         />
-        <p
-          v-if="error && !fieldErrors.title && !fieldErrors.body"
-          class="form-error"
-          role="alert"
-        >
-          {{ error }}
+        <p v-if="error && !('field' in error)" class="form-error" role="alert">
+          {{ noteErrorText(error, t) }}
         </p>
         <div v-if="conflict" class="conflict-recovery">
-          <p>
-            Your draft is still here. Save a separate note, or review the latest
-            saved version before replacing it.
-          </p>
-          <UiButton variant="secondary" :disabled="pending" @click="saveCopy"
-            >Save as a new note</UiButton
-          >
-          <UiButton variant="ghost" :disabled="pending" @click="reviewLatest"
-            >Review latest version</UiButton
-          >
+          <p>{{ t('notes.conflict.explanation') }}</p>
+          <UiButton variant="secondary" :disabled="pending" @click="saveCopy">{{
+            t('notes.conflict.saveCopy')
+          }}</UiButton>
+          <UiButton variant="ghost" :disabled="pending" @click="reviewLatest">{{
+            t('notes.conflict.review')
+          }}</UiButton>
           <div v-if="reviewed" class="latest-note">
             <template v-if="latest && latest.deletedAt === undefined"
-              ><h3>Latest saved version</h3>
+              ><h3>{{ t('notes.conflict.latest') }}</h3>
               <strong>{{ latest.title }}</strong>
               <p class="latest-body">{{ latest.body }}</p>
               <UiButton
                 variant="secondary"
                 :disabled="pending"
                 @click="replaceLatest"
-                >Replace latest with my draft</UiButton
+                >{{ t('notes.conflict.replace') }}</UiButton
               ></template
             >
-            <p v-else>
-              This note was deleted. Save your draft as a new note to keep it.
-            </p>
+            <p v-else>{{ t('notes.conflict.deleted') }}</p>
           </div>
         </div>
       </form>
       <template #footer
         ><span class="editor-hint" :class="{ 'is-dirty': dirty }">{{
-          dirty ? 'Unsaved changes' : 'Stored on this device'
+          dirty ? t('notes.editor.unsaved') : t('notes.editor.stored')
         }}</span
-        ><UiButton variant="ghost" :disabled="pending" @click="close"
-          >Cancel</UiButton
-        ><UiButton type="submit" form="note-form" :loading="pending"
-          >Save note</UiButton
-        ></template
+        ><UiButton variant="ghost" :disabled="pending" @click="close">{{
+          t('notes.editor.cancel')
+        }}</UiButton
+        ><UiButton type="submit" form="note-form" :loading="pending">{{
+          t('notes.editor.save')
+        }}</UiButton></template
       ></UiDialog
     >
     <UiDialog
       :open="deleting !== null"
       :title="
         showingTrash
-          ? 'Permanently delete this note?'
-          : 'Move this note to Trash?'
+          ? t('notes.remove.permanentTitle')
+          : t('notes.remove.trashTitle')
       "
       :description="
         showingTrash
-          ? 'This cannot be undone. Export a backup first if you want to keep it.'
-          : 'You can restore this note from Trash at any time.'
+          ? t('notes.remove.permanentDescription')
+          : t('notes.remove.trashDescription')
       "
+      :close-label="t('app.closeDialog')"
       @update:open="
         (value) => {
           if (!value && !pending) deleting = null
         }
       "
       ><p class="delete-preview">{{ deleting?.title }}</p>
-      <p v-if="error" class="form-error" role="alert">{{ error }}</p>
+      <p v-if="error" class="form-error" role="alert">
+        {{ noteErrorText(error, t) }}
+      </p>
       <template #footer
-        ><UiButton variant="ghost" :disabled="pending" @click="deleting = null"
-          >Keep note</UiButton
+        ><UiButton
+          variant="ghost"
+          :disabled="pending"
+          @click="deleting = null"
+          >{{ t('notes.remove.keep') }}</UiButton
         ><UiButton variant="danger" :loading="pending" @click="remove">{{
-          showingTrash ? 'Permanently delete' : 'Delete note'
+          showingTrash
+            ? t('notes.remove.permanentAction')
+            : t('notes.remove.trashAction')
         }}</UiButton></template
       ></UiDialog
     >
@@ -490,9 +508,13 @@ onUnmounted(() => {
         variant="secondary"
         :disabled="pending"
         @click="restore(undoNote)"
-        >Undo</UiButton
+        >{{ t('notes.toast.undo') }}</UiButton
       >
-      <UiToast :message="toast" @dismiss="toast = ''" />
+      <UiToast
+        :message="t(`notes.toast.${toast}`)"
+        :dismiss-label="t('app.dismissNotification')"
+        @dismiss="toast = null"
+      />
     </div>
   </section>
 </template>

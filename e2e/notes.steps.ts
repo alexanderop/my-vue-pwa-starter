@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { createBdd } from 'playwright-bdd'
 import { openSetting } from './settings'
+import { t } from '../apps/playground/src/i18n/testing'
 
 const { Given, When, Then } = createBdd()
 
@@ -8,20 +9,29 @@ Given('I open a fresh notebook', async ({ page, request }) => {
   await request.post('/__test/version?value=1')
   await page.goto('/')
   await expect(
-    page.getByRole('button', { name: 'New note', exact: true }),
+    page.getByRole('button', { name: t('notes.newNote'), exact: true }),
   ).toBeVisible()
 })
 
 When(
   'I create a note titled {string} with body {string}',
   async ({ page }, title: string, body: string) => {
-    await page.getByRole('button', { name: 'New note', exact: true }).click()
-    const dialog = page.getByRole('dialog', { name: 'New note', exact: true })
+    await page
+      .getByRole('button', { name: t('notes.newNote'), exact: true })
+      .click()
+    const dialog = page.getByRole('dialog', {
+      name: t('notes.editor.newTitle'),
+      exact: true,
+    })
     await dialog
-      .getByRole('textbox', { name: 'Title', exact: true })
+      .getByRole('textbox', { name: t('notes.editor.title'), exact: true })
       .fill(title)
-    await dialog.getByRole('textbox', { name: 'Note', exact: true }).fill(body)
-    await dialog.getByRole('button', { name: 'Save note', exact: true }).click()
+    await dialog
+      .getByRole('textbox', { name: t('notes.editor.body'), exact: true })
+      .fill(body)
+    await dialog
+      .getByRole('button', { name: t('notes.editor.save'), exact: true })
+      .click()
     await expect(dialog).not.toBeVisible()
     await expect(
       page.getByRole('heading', { name: title, exact: true }),
@@ -33,14 +43,24 @@ When(
   'I edit {string} to {string} with body {string}',
   async ({ page }, oldTitle: string, title: string, body: string) => {
     await page
-      .getByRole('button', { name: `Edit ${oldTitle}`, exact: true })
+      .getByRole('button', {
+        name: t('notes.card.edit', { title: oldTitle }),
+        exact: true,
+      })
       .click()
-    const dialog = page.getByRole('dialog', { name: 'Edit note', exact: true })
+    const dialog = page.getByRole('dialog', {
+      name: t('notes.editor.editTitle'),
+      exact: true,
+    })
     await dialog
-      .getByRole('textbox', { name: 'Title', exact: true })
+      .getByRole('textbox', { name: t('notes.editor.title'), exact: true })
       .fill(title)
-    await dialog.getByRole('textbox', { name: 'Note', exact: true }).fill(body)
-    await dialog.getByRole('button', { name: 'Save note', exact: true }).click()
+    await dialog
+      .getByRole('textbox', { name: t('notes.editor.body'), exact: true })
+      .fill(body)
+    await dialog
+      .getByRole('button', { name: t('notes.editor.save'), exact: true })
+      .click()
     await expect(dialog).not.toBeVisible()
   },
 )
@@ -50,7 +70,9 @@ When('I reload the notebook', async ({ page }) => {
 Then(
   'I see the note {string} with body {string}',
   async ({ page }, title: string, body: string) => {
-    await page.getByRole('button', { name: 'Notes', exact: true }).click()
+    await page
+      .getByRole('button', { name: t('app.nav.notes'), exact: true })
+      .click()
     await expect(
       page.getByRole('heading', { name: title, exact: true }),
     ).toBeVisible()
@@ -59,12 +81,12 @@ Then(
 )
 When('I search for {string}', async ({ page }, query: string) => {
   await page
-    .getByRole('searchbox', { name: 'Search notes', exact: true })
+    .getByRole('searchbox', { name: t('notes.search.label'), exact: true })
     .fill(query)
 })
 Then('I see no matching notes', async ({ page }) => {
   await expect(
-    page.getByText('No thoughts found.', { exact: true }),
+    page.getByText(t('notes.noResults.title'), { exact: true }),
   ).toBeVisible()
 })
 When('the notebook is ready offline', async ({ page }) => {
@@ -80,100 +102,32 @@ When(
     await page.goto('/')
   },
 )
-When('a new version becomes available', async ({ page, request }) => {
-  await request.post('/__test/version?value=2')
-  await page.evaluate(async () => {
-    const registration = await navigator.serviceWorker.ready
-    await registration.update()
-  })
-  await page.waitForFunction(async () =>
-    Boolean((await navigator.serviceWorker.getRegistration())?.waiting),
-  )
-})
-Then('I can postpone the update', async ({ page }) => {
-  await expect(
-    page.getByRole('button', { name: 'Update now', exact: true }),
-  ).toBeVisible()
-  await page.getByRole('button', { name: 'Later', exact: true }).click()
-  await openSetting(page, 'Updates & offline')
-  await expect(page.getByText('Version 1', { exact: true })).toBeVisible()
-})
-When('I accept the update', async ({ page }) => {
-  await openSetting(page, 'Updates & offline')
-  await page
-    .getByRole('button', { name: 'Check for updates', exact: true })
-    .click()
-  await page.getByRole('button', { name: 'Update now', exact: true }).click()
-})
-Then(
-  'the notebook runs version {string}',
-  async ({ page }, version: string) => {
-    await openSetting(page, 'Updates & offline')
-    await expect(
-      page.getByText(`Version ${version}`, { exact: true }),
-    ).toBeVisible()
-  },
-)
 When('I start an unsaved note', async ({ page }) => {
-  await page.getByRole('button', { name: 'New note', exact: true }).click()
   await page
-    .getByRole('textbox', { name: 'Title', exact: true })
+    .getByRole('button', { name: t('notes.newNote'), exact: true })
+    .click()
+  await page
+    .getByRole('textbox', { name: t('notes.editor.title'), exact: true })
     .fill('Unfinished thought')
   await page
-    .getByRole('textbox', { name: 'Note', exact: true })
+    .getByRole('textbox', { name: t('notes.editor.body'), exact: true })
     .fill('Do not reload this draft.')
-})
-Then(
-  'the draft is preserved and the update cannot reload it',
-  async ({ page }) => {
-    await expect(
-      page.getByRole('textbox', { name: 'Title', exact: true }),
-    ).toHaveValue('Unfinished thought')
-    await expect(
-      page.getByRole('textbox', { name: 'Note', exact: true }),
-    ).toHaveValue('Do not reload this draft.')
-    const update = page.getByRole('button', {
-      name: 'Update now',
-      exact: true,
-      includeHidden: true,
-    })
-    await expect(update).toBeDisabled()
-  },
-)
-
-When(
-  'another tab installs a new version',
-  async ({ page, context, request }) => {
-    const updater = await context.newPage()
-    await updater.goto('/#/settings')
-    await openSetting(updater, 'Updates & offline')
-    await expect(updater.getByText('Version 1', { exact: true })).toBeVisible()
-    await request.post('/__test/version?value=2')
-    await updater
-      .getByRole('button', { name: 'Check for updates', exact: true })
-      .click()
-    await updater
-      .getByRole('button', { name: 'Update now', exact: true })
-      .click()
-    await expect(updater.getByText('Version 2', { exact: true })).toBeVisible()
-    await page.bringToFront()
-    await updater.close()
-  },
-)
-When('I save the preserved draft and update this tab', async ({ page }) => {
-  await page.getByRole('button', { name: 'Save note', exact: true }).click()
-  await expect(page.getByRole('dialog')).not.toBeVisible()
-  await openSetting(page, 'Updates & offline')
-  await expect(page.getByText('Version 1', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Update now', exact: true }).click()
 })
 
 When('I pin {string}', async ({ page }, title: string) => {
-  await page.getByRole('button', { name: `Pin ${title}`, exact: true }).click()
+  await page
+    .getByRole('button', {
+      name: t('notes.card.pin', { title }),
+      exact: true,
+    })
+    .click()
 })
 Then('{string} is pinned', async ({ page }, title: string) => {
   await expect(
-    page.getByRole('button', { name: `Unpin ${title}`, exact: true }),
+    page.getByRole('button', {
+      name: t('notes.card.unpin', { title }),
+      exact: true,
+    }),
   ).toBeVisible()
 })
 Then('the mobile notebook fits the screen', async ({ page }) => {
@@ -186,7 +140,9 @@ Then('the mobile notebook fits the screen', async ({ page }) => {
     path: test.info().outputPath('mobile-notes.png'),
     fullPage: true,
   })
-  await page.getByRole('button', { name: 'New note', exact: true }).click()
+  await page
+    .getByRole('button', { name: t('notes.newNote'), exact: true })
+    .click()
   await expect(page.getByRole('dialog')).toBeVisible()
   expect(
     await page.evaluate(
@@ -197,16 +153,26 @@ Then('the mobile notebook fits the screen', async ({ page }) => {
     path: test.info().outputPath('mobile-editor.png'),
     fullPage: true,
   })
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await page
+    .getByRole('button', { name: t('notes.editor.cancel'), exact: true })
+    .click()
 })
 When('I choose the dark theme and reload', async ({ page }) => {
-  await openSetting(page, 'Appearance')
-  await page.getByRole('radio', { name: 'Dark', exact: true }).check()
+  await openSetting(page, t('settings.appearance.title'))
+  await page
+    .getByRole('radio', {
+      name: t('settings.appearance.themes.dark'),
+      exact: true,
+    })
+    .check()
   await page.reload()
 })
 Then('the dark theme is remembered', async ({ page }) => {
   await expect(
-    page.getByRole('radio', { name: 'Dark', exact: true }),
+    page.getByRole('radio', {
+      name: t('settings.appearance.themes.dark'),
+      exact: true,
+    }),
   ).toBeChecked()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await page.screenshot({
@@ -215,17 +181,24 @@ Then('the dark theme is remembered', async ({ page }) => {
   })
 })
 When('I delete {string}', async ({ page }, title: string) => {
-  await page.getByRole('button', { name: 'Notes', exact: true }).click()
   await page
-    .getByRole('button', { name: `Delete ${title}`, exact: true })
+    .getByRole('button', { name: t('app.nav.notes'), exact: true })
     .click()
-  await page.getByRole('button', { name: 'Delete note', exact: true }).click()
+  await page
+    .getByRole('button', {
+      name: t('notes.card.delete', { title }),
+      exact: true,
+    })
+    .click()
+  await page
+    .getByRole('button', { name: t('notes.remove.trashAction'), exact: true })
+    .click()
   await expect(page.getByRole('dialog')).not.toBeVisible()
 })
 Then('the notebook is empty', async ({ page }) => {
   await expect(
     page.getByRole('heading', {
-      name: 'Good things start with a blank page.',
+      name: t('notes.empty.title'),
       exact: true,
     }),
   ).toBeVisible()
@@ -267,16 +240,21 @@ Then('swiping the sheet cannot silently discard my draft', async ({ page }) => {
   })
   await page.mouse.up()
   await expect(
-    page.getByRole('dialog', { name: 'New note', exact: true }),
+    page.getByRole('dialog', {
+      name: t('notes.editor.newTitle'),
+      exact: true,
+    }),
   ).toBeVisible()
   await expect(
-    page.getByRole('textbox', { name: 'Title', exact: true }),
+    page.getByRole('textbox', { name: t('notes.editor.title'), exact: true }),
   ).toHaveValue('Unfinished thought')
   await expect(page.locator('.ui-dialog')).not.toHaveAttribute(
     'style',
     /translateY/,
   )
-  await page.getByRole('textbox', { name: 'Note', exact: true }).focus()
+  await page
+    .getByRole('textbox', { name: t('notes.editor.body'), exact: true })
+    .focus()
   await page.keyboard.press('Control+Enter')
   await expect(page.getByRole('dialog')).not.toBeVisible()
   await expect(

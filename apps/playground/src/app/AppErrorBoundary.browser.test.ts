@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import { page } from 'vitest/browser'
 import { render } from 'vitest-browser-vue'
+import { createAppI18n } from '../i18n'
+import { t } from '../i18n/testing'
 import AppErrorBoundary from './AppErrorBoundary.vue'
 
 describe('AppErrorBoundary', () => {
@@ -17,14 +19,17 @@ describe('AppErrorBoundary', () => {
         return null
       },
     })
-    await render(AppErrorBoundary, { slots: { default: () => h(Broken) } })
+    await render(AppErrorBoundary, {
+      slots: { default: () => h(Broken) },
+      global: { plugins: [createAppI18n('en')] },
+    })
     await expect
-      .element(page.getByRole('heading', { name: 'Something went wrong.' }))
+      .element(page.getByRole('heading', { name: t('app.recovery.title') }))
       .toHaveFocus()
     await expect
-      .element(page.getByRole('button', { name: 'Reload app' }))
+      .element(page.getByRole('button', { name: t('app.recovery.reload') }))
       .toBeVisible()
-    await page.getByText('Safe diagnostics').click()
+    await page.getByText(t('app.recovery.diagnostics')).click()
     const content = page.getByRole('alert').element().textContent
     expect(content).toContain('test-build')
     expect(content).not.toContain('Private note text')

@@ -67,12 +67,12 @@ describe('IndexedDB notes adapter', () => {
     expect(attempts.filter((result) => result.isOk())).toHaveLength(1)
     expect(attempts.filter((result) => result.isErr())).toEqual([
       expect.objectContaining({
-        error: expect.objectContaining({ kind: 'conflict' }),
+        error: { reason: 'conflict' },
       }),
     ])
     expect(await other.remove(note.id, 1)).toMatchObject({
       status: 'error',
-      error: { kind: 'conflict' },
+      error: { reason: 'conflict' },
     })
     const persisted = await other.list()
     expect(persisted).toMatchObject({ status: 'ok', value: [{ revision: 2 }] })
@@ -95,15 +95,15 @@ describe('IndexedDB notes adapter', () => {
     raw.close()
     expect(await adapter.list()).toMatchObject({
       status: 'error',
-      error: { kind: 'corrupt' },
+      error: { reason: 'corrupt' },
     })
     expect(await adapter.save(note, 1)).toMatchObject({
       status: 'error',
-      error: { kind: 'corrupt' },
+      error: { reason: 'corrupt' },
     })
     expect(await adapter.remove(note.id, 1)).toMatchObject({
       status: 'error',
-      error: { kind: 'corrupt' },
+      error: { reason: 'corrupt' },
     })
   })
 
@@ -113,11 +113,11 @@ describe('IndexedDB notes adapter', () => {
     adapter.close()
     expect(await pending).toMatchObject({
       status: 'error',
-      error: { kind: 'storage' },
+      error: { reason: 'storageUnavailable' },
     })
     expect(await adapter.list()).toMatchObject({
       status: 'error',
-      error: { kind: 'storage' },
+      error: { reason: 'connectionClosed' },
     })
   })
 
@@ -132,11 +132,11 @@ describe('IndexedDB notes adapter', () => {
     upgraded.close()
     expect(await adapter.list()).toMatchObject({
       status: 'error',
-      error: { kind: 'storage' },
+      error: { reason: 'connectionClosed' },
     })
     expect(await repository(name).adapter.list()).toMatchObject({
       status: 'error',
-      error: { kind: 'storage' },
+      error: { reason: 'storageUnavailable' },
     })
   })
 

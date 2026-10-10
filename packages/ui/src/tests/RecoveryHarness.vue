@@ -9,10 +9,14 @@ function confirmDeletion() {
 }
 </script>
 <template>
-  <AppShell>
+  <AppShell skip-label="Skip to content">
     <h1>Settings</h1>
     <UiButton v-if="!removed" @click="open = true">Delete item</UiButton>
-    <UiDialog v-model:open="open" title="Delete item">
+    <UiDialog
+      v-model:open="open"
+      title="Delete item"
+      close-label="Close dialog"
+    >
       <UiButton @click="confirmDeletion">Confirm deletion</UiButton>
     </UiDialog>
   </AppShell>

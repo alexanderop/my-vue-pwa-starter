@@ -1,24 +1,38 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { page } from 'vitest/browser'
+import { list, t } from '../../../i18n/testing'
 import { closeSettingsRepositories, renderSettings } from './testing'
-import { settingsSections } from './sections'
+import { sectionTitle, settingsSections } from './sections'
 
 describe('given the Settings hub', () => {
   afterEach(closeSettingsRepositories)
 
   it('should link to a page for every section', async () => {
     await renderSettings('/settings')
-    expect(settingsSections).toHaveLength(5)
-    for (const { title } of settingsSections)
+    expect(settingsSections).toHaveLength(6)
+    for (const section of settingsSections)
       await expect
-        .element(page.getByRole('link', { name: title, exact: false }))
+        .element(
+          page.getByRole('link', {
+            name: t(sectionTitle(section)),
+            exact: false,
+          }),
+        )
         .toBeVisible()
   })
 
   it('should summarise the current choices on the rows', async () => {
     await renderSettings('/settings', { theme: 'dark', accent: 'pink' })
     await expect
-      .element(page.getByText('Dark · Pink', { exact: true }))
+      .element(
+        page.getByText(
+          t('settings.appearance.summary', {
+            theme: t('settings.appearance.themes.dark'),
+            accent: t('settings.appearance.accents.pink'),
+          }),
+          { exact: true },
+        ),
+      )
       .toBeVisible()
     await expect.element(page.getByText('test', { exact: true })).toBeVisible()
   })
@@ -31,39 +45,44 @@ describe('given the Settings hub', () => {
         offlineReady: { value: false },
         updateAvailable: { value: false },
         checking: { value: false },
-        status: { value: '' },
+        status: { value: null },
         install: async () => {},
         checkForUpdates: async () => {},
       },
     })
     await expect
-      .element(page.getByText('Installed', { exact: true }))
+      .element(page.getByText(t('settings.install.installed'), { exact: true }))
       .toBeVisible()
     await expect
-      .element(page.getByText('Preparing', { exact: true }))
+      .element(page.getByText(t('settings.preparing'), { exact: true }))
       .toBeVisible()
   })
 
   describe('when opening a row', () => {
     it('should open its page, and the back link should return to the hub', async () => {
       const { router } = await renderSettings('/settings')
-      await page.getByRole('link', { name: 'Appearance', exact: false }).click()
+      const appearance = t('settings.appearance.title')
+      await page.getByRole('link', { name: appearance, exact: false }).click()
       await expect
-        .element(page.getByRole('heading', { name: 'Appearance' }))
+        .element(page.getByRole('heading', { name: appearance }))
         .toBeVisible()
       expect(router.currentRoute.value.path).toBe('/settings/appearance')
-      await page.getByRole('link', { name: 'Settings' }).click()
+      await page.getByRole('link', { name: t('settings.back') }).click()
       await expect
-        .element(page.getByRole('heading', { name: 'Settings' }))
+        .element(page.getByRole('heading', { name: t('settings.title') }))
         .toBeVisible()
       expect(router.currentRoute.value.name).toBe('settings')
     })
 
     it.each([
-      ['Add to Home Screen', 'Keep Fieldnotes close'],
-      ['Updates & offline', 'Version test'],
-      ['Export backup', 'Back up your notes'],
-      ['Import backup', 'Restore from a backup'],
+      [t('settings.install.title'), t('settings.install.heading')],
+      [
+        t('settings.updates.title'),
+        t('settings.updates.version', { version: 'test' }),
+      ],
+      [t('settings.export.title'), t('settings.export.heading')],
+      [t('settings.import.title'), t('settings.import.heading')],
+      [t('settings.language.title'), t('settings.language.help')],
     ])('should show the %s page', async (row, text) => {
       await renderSettings('/settings')
       await page.getByRole('link', { name: row, exact: false }).click()
@@ -84,18 +103,20 @@ describe('given the Updates page', () => {
         offlineReady: { value: true },
         updateAvailable: { value: false },
         checking: { value: false },
-        status: { value: 'You are up to date.' },
+        status: { value: 'upToDate' },
         install: async () => {},
         checkForUpdates: async () => {
           checks += 1
         },
       },
     })
-    await page.getByRole('button', { name: 'Check for updates' }).click()
+    await page
+      .getByRole('button', { name: t('settings.updates.check') })
+      .click()
     expect(checks).toBe(1)
     await expect
       .element(page.getByRole('status'))
-      .toHaveTextContent('You are up to date.')
+      .toHaveTextContent(t('settings.updates.status.upToDate'))
   })
 })
 
@@ -111,22 +132,25 @@ describe('given the Add to Home Screen page', () => {
         offlineReady: { value: true },
         updateAvailable: { value: false },
         checking: { value: false },
-        status: { value: '' },
+        status: { value: null },
         install: async () => {
           installs += 1
         },
         checkForUpdates: async () => {},
       },
     })
-    await page.getByRole('button', { name: 'Install Fieldnotes' }).click()
+    await page
+      .getByRole('button', { name: t('settings.install.action') })
+      .click()
     expect(installs).toBe(1)
   })
 
   it('should show steps for the platform picked by hand', async () => {
     await renderSettings('/settings/install')
-    await page.getByRole('radio', { name: 'Android' }).click()
-    await expect
-      .element(page.getByText('Open this page in Chrome.'))
-      .toBeVisible()
+    await page
+      .getByRole('radio', { name: t('settings.install.platforms.android') })
+      .click()
+    for (const step of list('settings.install.steps.android'))
+      await expect.element(page.getByText(step)).toBeVisible()
   })
 })

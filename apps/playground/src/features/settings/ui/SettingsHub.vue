@@ -1,37 +1,41 @@
 <script setup lang="ts">
 import { BookOpen, ShieldCheck } from '@lucide/vue'
+import { useTranslation } from '../../../i18n'
 import { UiBadge } from '@starter/ui'
 import type { Accent, Theme } from '../domain/appearance'
+import type { Language } from '../domain/language'
 import type { AppCapabilities } from '../ports/settings'
-import { routeNameFor, settingsGroups } from './sections'
+import { routeNameFor, sectionTitle, settingsGroups } from './sections'
 import SettingsGroup from './SettingsGroup.vue'
 import SettingsRow from './SettingsRow.vue'
 
-const { theme, accent, pwa } = defineProps<{
+const { theme, accent, language, pwa } = defineProps<{
   theme: Theme
   accent: Accent
+  language: Language
   pwa: AppCapabilities
 }>()
+const { t } = useTranslation()
 </script>
 <template>
   <section class="hub">
-    <h1>Settings</h1>
+    <h1>{{ t('settings.title') }}</h1>
 
     <div class="app-card">
       <span class="mark"><BookOpen :size="28" aria-hidden="true" /></span>
       <div class="identity">
         <strong>fieldnotes<span class="dot">.</span></strong>
-        <span>Your own little corner.</span>
+        <span>{{ t('app.tagline') }}</span>
       </div>
       <UiBadge :tone="pwa.offlineReady.value ? 'success' : 'neutral'">{{
-        pwa.offlineReady.value ? 'Offline ready' : 'Preparing'
+        pwa.offlineReady.value ? t('app.offlineReady') : t('settings.preparing')
       }}</UiBadge>
     </div>
 
     <SettingsGroup
       v-for="group in settingsGroups"
       :key="group.id"
-      :label="group.label"
+      :label="group.label && t(group.label)"
     >
       <SettingsRow
         v-for="section in group.sections"
@@ -39,14 +43,14 @@ const { theme, accent, pwa } = defineProps<{
         :to="{ name: routeNameFor(section) }"
         :icon="section.icon"
         :tone="section.tone"
-        :label="section.title"
-        :value="section.value?.({ theme, accent, pwa })"
+        :label="t(sectionTitle(section))"
+        :value="section.value?.({ theme, accent, language, pwa }, t)"
       />
     </SettingsGroup>
 
     <p class="privacy">
       <ShieldCheck :size="16" aria-hidden="true" />
-      <span>Your notes stay on this device. Nothing is sent anywhere.</span>
+      <span>{{ t('settings.privacy') }}</span>
     </p>
   </section>
 </template>

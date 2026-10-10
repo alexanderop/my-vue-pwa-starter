@@ -65,6 +65,21 @@ try {
       'Composables depend only',
     ],
     [
+      'apps/playground/src/features/notes/ui/untyped.vue',
+      "<script setup>import { useI18n } from 'vue-i18n'</script>",
+      'Translate through src/i18n',
+    ],
+    [
+      'apps/playground/src/i18n-tools/untyped.ts',
+      "import { createI18n } from 'vue-i18n'",
+      'Translate through src/i18n',
+    ],
+    [
+      'apps/playground/src/app/intlify.ts',
+      "import { compile } from '@intlify/core-base'",
+      'Translate through src/i18n',
+    ],
+    [
       'apps/playground/src/features/notes/domain/composables.ts',
       "import '@starter/composables'",
       'Core code depends only',
@@ -81,7 +96,7 @@ try {
     rmSync(resolve(directory, file))
   }
   console.log(
-    'Architecture gate rejected all nine forbidden imports and globals',
+    `Architecture gate rejected all ${violations.length} forbidden imports and globals`,
   )
 } finally {
   rmSync(directory, { recursive: true, force: true })

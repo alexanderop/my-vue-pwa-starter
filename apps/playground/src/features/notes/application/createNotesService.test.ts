@@ -34,8 +34,8 @@ function fixture(idPrefix = 'note') {
   return { service, repository }
 }
 
-function value<T>(result: Result<T, { message: string }>): T {
-  if (result.isErr()) throw new Error(result.error.message)
+function value<T>(result: Result<T, object>): T {
+  if (result.isErr()) throw new Error(JSON.stringify(result.error))
   return result.value
 }
 
@@ -101,7 +101,7 @@ describe('notes service', () => {
     ]) {
       expect(await service.create(draft)).toMatchObject({
         status: 'error',
-        error: { kind: 'validation' },
+        error: { reason: expect.stringMatching(/^(title|body)/) },
       })
     }
     expect(await service.list()).toEqual({ status: 'ok', value: [] })
@@ -156,20 +156,19 @@ describe('notes service', () => {
     })
     expect(await broken.list()).toMatchObject({
       status: 'error',
-      error: { kind: 'storage' },
+      error: { reason: 'storageFailed' },
     })
     const conflicted = createNotesService({
       repository: {
         ...repository,
-        save: async () =>
-          Result.err({ kind: 'conflict', message: 'Changed elsewhere' }),
+        save: async () => Result.err({ reason: 'conflict' }),
       },
       now: () => 0,
       newId: () => 'id',
     })
     expect(await conflicted.create({ title: 'Title', body: '' })).toEqual({
       status: 'error',
-      error: { kind: 'conflict', message: 'Changed elsewhere' },
+      error: { reason: 'conflict' },
     })
   })
 
@@ -327,7 +326,7 @@ describe('given storage that fails during a backup', () => {
     const { service, repository } = fixture()
     vi.spyOn(repository, 'addMany').mockRejectedValue(new Error('quota'))
     vi.spyOn(repository, 'list').mockResolvedValue(
-      Result.err({ kind: 'corrupt', message: 'Unreadable rows' }),
+      Result.err({ reason: 'corrupt' }),
     )
     const imported = await service.importBackup(
       file({ format: 'fieldnotes', version: 1, notes: [] }),
@@ -337,14 +336,14 @@ describe('given storage that fails during a backup', () => {
       status: 'error',
       error: expect.objectContaining({
         _tag: 'BackupStorageFailed',
-        failure: expect.objectContaining({ kind: 'storage' }),
+        failure: { reason: 'storageFailed' },
       }),
     })
     expect(exported).toMatchObject({
       status: 'error',
       error: expect.objectContaining({
         _tag: 'BackupStorageFailed',
-        failure: { kind: 'corrupt', message: 'Unreadable rows' },
+        failure: { reason: 'corrupt' },
       }),
     })
   })

@@ -1,22 +1,26 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useTranslation } from '../i18n'
 import { NotebookPen, Settings2, BookOpen, WifiOff } from '@lucide/vue'
 import { AppShell, AppNavigation, UiButton, UiBadge } from '@starter/ui'
 import type { NotesService } from '../features/notes'
 import { settingsPropsFor, type SettingsContext } from '../features/settings'
 import { usePwa } from '../platform/pwa/usePwa'
+import { useLanguage } from './useLanguage'
 import { useTheme } from './useTheme'
 const { notes } = defineProps<{ notes: NotesService }>()
 const route = useRoute()
 const router = useRouter()
 const busy = ref(false)
 const { theme, setTheme, accent, setAccent } = useTheme()
+const { language, setLanguage } = useLanguage()
+const { t } = useTranslation()
 const pwa = usePwa(busy)
-const items = [
-  { id: 'notes', label: 'Notes', icon: NotebookPen },
-  { id: 'settings', label: 'Settings', icon: Settings2 },
-]
+const items = computed(() => [
+  { id: 'notes', label: t('app.nav.notes'), icon: NotebookPen },
+  { id: 'settings', label: t('app.nav.settings'), icon: Settings2 },
+])
 function onBusyChange(value: boolean) {
   busy.value = value
 }
@@ -26,13 +30,15 @@ const settingsContext = computed<SettingsContext>(() => ({
   setTheme,
   accent: accent.value,
   setAccent,
+  language: language.value,
+  setLanguage,
   pwa,
   onBusyChange,
 }))
 // An item is active when its destination lives in the current top-level route.
 const active = computed(
   () =>
-    items.find(
+    items.value.find(
       ({ id }) => router.resolve({ name: id }).matched[0] === route.matched[0],
     )?.id ?? 'notes',
 )
@@ -53,7 +59,7 @@ function navigate(id: string) {
 }
 </script>
 <template>
-  <AppShell>
+  <AppShell :skip-label="t('app.skipToContent')">
     <template #header
       ><div class="brand-header">
         <a
@@ -66,16 +72,19 @@ function navigate(id: string) {
         >
         <div class="connection-status">
           <UiBadge v-if="!pwa.online.value" tone="warning"
-            ><WifiOff :size="12" aria-hidden="true" />Offline</UiBadge
+            ><WifiOff :size="12" aria-hidden="true" />{{
+              t('app.offline')
+            }}</UiBadge
           ><UiBadge v-else-if="pwa.offlineReady.value" tone="success"
-            ><span class="status-dot" />Offline ready</UiBadge
-          ><span v-else class="muted">Your own little corner.</span>
+            ><span class="status-dot" />{{ t('app.offlineReady') }}</UiBadge
+          ><span v-else class="muted">{{ t('app.tagline') }}</span>
         </div>
       </div></template
     >
     <template #navigation
       ><AppNavigation
         :items="items"
+        :label="t('app.mainNavigation')"
         :model-value="active"
         @update:model-value="navigate"
     /></template>
@@ -83,35 +92,29 @@ function navigate(id: string) {
       ><component :is="Component" v-bind="pageProps"
     /></RouterView>
     <footer class="page-footer">
-      <span>A little space for what matters.</span
-      ><span>Yours. On this device.</span>
+      <span>{{ t('app.footer.purpose') }}</span
+      ><span>{{ t('app.footer.ownership') }}</span>
     </footer>
     <aside
       v-if="pwa.updateAvailable.value && !pwa.deferred.value"
       class="update-notice"
-      aria-label="App update"
+      :aria-label="t('app.update.label')"
     >
       <div>
-        <strong>A fresh version is ready.</strong>
-        <p>
-          {{
-            busy
-              ? 'Save or discard your draft before updating.'
-              : 'Update when you are ready. Your saved notes stay here.'
-          }}
-        </p>
+        <strong>{{ t('app.update.title') }}</strong>
+        <p>{{ busy ? t('app.update.busy') : t('app.update.idle') }}</p>
       </div>
       <div class="update-actions">
         <UiButton
           variant="ghost"
           :disabled="pwa.updating.value"
           @click="pwa.deferred.value = true"
-          >Later</UiButton
+          >{{ t('app.update.later') }}</UiButton
         ><UiButton
           :disabled="busy"
           :loading="pwa.updating.value"
           @click="pwa.update"
-          >Update now</UiButton
+          >{{ t('app.update.now') }}</UiButton
         >
       </div>
     </aside>

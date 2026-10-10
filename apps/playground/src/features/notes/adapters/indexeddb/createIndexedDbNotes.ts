@@ -1,27 +1,19 @@
 import { Result } from '@starter/result'
 import * as v from 'valibot'
-import { noteSchema, type Note, type NoteResult } from '../../domain/note'
+import {
+  noteSchema,
+  type Note,
+  type NoteError,
+  type NoteResult,
+} from '../../domain/note'
 import type { NoteRepository } from '../../ports/NoteRepository'
 
 const failure = (
-  kind: 'storage' | 'conflict' | 'corrupt',
-  message: string,
-): NoteResult<never> => Result.err({ kind, message })
-const storageFailure = () =>
-  failure(
-    'storage',
-    'Local storage is unavailable. Keep your draft and try again.',
-  )
-const conflict = () =>
-  failure(
-    'conflict',
-    'This note changed in another tab. Reload your notes before trying again.',
-  )
-const corrupt = () =>
-  failure(
-    'corrupt',
-    'Some saved notes could not be read. Your stored data has been left untouched.',
-  )
+  reason: Exclude<NoteError, { field: string }>['reason'],
+): NoteResult<never> => Result.err({ reason })
+const storageFailure = () => failure('storageUnavailable')
+const conflict = () => failure('conflict')
+const corrupt = () => failure('corrupt')
 
 function checkRevision(
   raw: unknown,
@@ -49,13 +41,7 @@ export function createIndexedDbNotes({
   let closed = false
 
   function open(): Promise<NoteResult<IDBDatabase>> {
-    if (closed)
-      return Promise.resolve(
-        failure(
-          'storage',
-          'The notes connection has closed. Keep your draft and reload the app to reconnect.',
-        ),
-      )
+    if (closed) return Promise.resolve(failure('connectionClosed'))
     if (database) return Promise.resolve(Result.ok(database))
     if (opening) return opening
     opening = new Promise<NoteResult<IDBDatabase>>((resolve) => {
@@ -78,14 +64,7 @@ export function createIndexedDbNotes({
             request.result.createObjectStore('notes', { keyPath: 'id' })
         })
         request.addEventListener('error', () => finish(storageFailure()))
-        request.addEventListener('blocked', () =>
-          finish(
-            failure(
-              'storage',
-              'Close other tabs using these notes, then try again.',
-            ),
-          ),
-        )
+        request.addEventListener('blocked', () => finish(failure('blocked')))
         request.addEventListener('success', () => {
           const connection = request.result
           if (settled || closed) {
