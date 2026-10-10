@@ -61,6 +61,7 @@ export async function renderSettings(
       { path: '/:pathMatch(.*)*', redirect: '/settings' },
     ],
   })
+  const i18n = createAppI18n('en')
   await router.push(path)
   await router.isReady()
   // Mirrors App.vue: the outer view hands each settings page its props.
@@ -75,7 +76,7 @@ export async function renderSettings(
           route: { name?: unknown }
         }) => h(Component, settingsPropsFor(route.name, context)),
       }),
-    { global: { plugins: [router, createAppI18n('en')] } },
+    { global: { plugins: [router, i18n] } },
   )
-  return { service, router }
+  return { service, router, i18n }
 }

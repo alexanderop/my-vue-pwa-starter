@@ -9,12 +9,11 @@ import {
 import type { NoteRepository } from '../../ports/NoteRepository'
 
 const failure = (
-  kind: 'storage' | 'conflict' | 'corrupt',
-  reason: NoteError['reason'],
-): NoteResult<never> => Result.err({ kind, reason })
-const storageFailure = () => failure('storage', 'storageUnavailable')
-const conflict = () => failure('conflict', 'conflict')
-const corrupt = () => failure('corrupt', 'corrupt')
+  reason: Exclude<NoteError, { field: string }>['reason'],
+): NoteResult<never> => Result.err({ reason })
+const storageFailure = () => failure('storageUnavailable')
+const conflict = () => failure('conflict')
+const corrupt = () => failure('corrupt')
 
 function checkRevision(
   raw: unknown,
@@ -42,7 +41,7 @@ export function createIndexedDbNotes({
   let closed = false
 
   function open(): Promise<NoteResult<IDBDatabase>> {
-    if (closed) return Promise.resolve(failure('storage', 'connectionClosed'))
+    if (closed) return Promise.resolve(failure('connectionClosed'))
     if (database) return Promise.resolve(Result.ok(database))
     if (opening) return opening
     opening = new Promise<NoteResult<IDBDatabase>>((resolve) => {
@@ -65,9 +64,7 @@ export function createIndexedDbNotes({
             request.result.createObjectStore('notes', { keyPath: 'id' })
         })
         request.addEventListener('error', () => finish(storageFailure()))
-        request.addEventListener('blocked', () =>
-          finish(failure('storage', 'blocked')),
-        )
+        request.addEventListener('blocked', () => finish(failure('blocked')))
         request.addEventListener('success', () => {
           const connection = request.result
           if (settled || closed) {

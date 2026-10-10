@@ -16,6 +16,7 @@ import {
 } from '@starter/ui'
 import type { Note, NotesService } from '../index'
 import type { NoteError } from '../domain/note'
+import { noteErrorText } from './noteErrorText'
 import { useNotesSearch } from './useNotesSearch'
 
 const { service } = defineProps<{ service: NotesService }>()
@@ -28,16 +29,20 @@ const query = useNotesSearch(service)
 const trash = ref<readonly Note[]>([])
 const showingTrash = ref(false)
 const undoNote = ref<Note | null>(null)
-const fieldErrors = ref<{ title?: string; body?: string }>({})
 const conflict = ref(false)
 const latest = ref<Note | null>(null)
 const reviewed = ref(false)
 const editor = ref<{ original: Note | null } | null>(null)
 const title = ref('')
 const body = ref('')
-const error = ref('')
-const refreshError = ref('')
-const toast = ref('')
+// Errors and toasts keep their code, so they re-translate if the language changes.
+const error = ref<NoteError | null>(null)
+const refreshError = ref<NoteError | null>(null)
+const toast = ref<'saved' | 'trashed' | 'deleted' | 'restored' | null>(null)
+const fieldError = (field: 'title' | 'body') =>
+  error.value && 'field' in error.value && error.value.field === field
+    ? noteErrorText(error.value, t)
+    : undefined
 const deleting = ref<Note | null>(null)
 let readVersion = 0
 let mounted = true
@@ -82,8 +87,6 @@ const formatDate = (timestamp: number) =>
     month: 'short',
     day: 'numeric',
   }).format(timestamp)
-const describe = (failure: { reason: NoteError['reason'] }) =>
-  t(`notes.errors.${failure.reason}`)
 
 async function refresh() {
   const version = ++readVersion
@@ -92,32 +95,31 @@ async function refresh() {
   loading.value = false
   if (result.isOk()) {
     notes.value = result.value
-    refreshError.value = ''
+    refreshError.value = null
     const deleted = await service.listTrash()
     if (deleted.isOk() && mounted && version === readVersion)
       trash.value = deleted.value
-  } else refreshError.value = describe(result.error)
+  } else refreshError.value = result.error
 }
 function open(note: Note | null = null) {
   editor.value = { original: note }
   title.value = note?.title ?? ''
   body.value = note?.body ?? ''
-  fieldErrors.value = {}
   conflict.value = false
   reviewed.value = false
   latest.value = null
-  error.value = ''
+  error.value = null
 }
 function close() {
   if (pending.value) return
   if (dirty.value && !window.confirm(t('notes.editor.discard'))) return
   editor.value = null
-  error.value = ''
+  error.value = null
 }
 async function reviewLatest() {
   const result = await service.exportData()
   if (result.isErr()) {
-    error.value = describe(result.error)
+    error.value = result.error
     return
   }
   latest.value =
@@ -135,8 +137,7 @@ function revisionBase(mode: 'normal' | 'copy' | 'replace' | Event) {
   if (mode === 'replace') return latest.value
   return editor.value?.original ?? null
 }
-async function showFieldError(field: 'title' | 'body', message: string) {
-  fieldErrors.value = { [field]: message }
+async function focusField(field: 'title' | 'body') {
   await nextTick()
   document.getElementById(`note-${field}`)?.focus()
 }
@@ -144,8 +145,7 @@ async function save(mode: 'normal' | 'copy' | 'replace' | Event = 'normal') {
   if (!editor.value || pending.value) return
   pending.value = true
   readVersion++
-  error.value = ''
-  fieldErrors.value = {}
+  error.value = null
   const original = revisionBase(mode)
   if (
     mode === 'replace' &&
@@ -160,10 +160,9 @@ async function save(mode: 'normal' | 'copy' | 'replace' | Event = 'normal') {
     : await service.create(draft)
   pending.value = false
   if (result.isErr()) {
-    error.value = describe(result.error)
-    conflict.value = result.error.kind === 'conflict'
-    if (result.error.field)
-      await showFieldError(result.error.field, error.value)
+    error.value = result.error
+    conflict.value = result.error.reason === 'conflict'
+    if ('field' in result.error) await focusField(result.error.field)
     return
   }
   notes.value = [
@@ -172,7 +171,7 @@ async function save(mode: 'normal' | 'copy' | 'replace' | Event = 'normal') {
   ]
   editor.value = null
   undoNote.value = null
-  toast.value = t('notes.toast.saved')
+  toast.value = 'saved'
   await refresh()
 }
 async function pin(note: Note) {
@@ -182,7 +181,7 @@ async function pin(note: Note) {
   const result = await service.setPinned(note, !note.pinned)
   pending.value = false
   if (result.isErr()) {
-    refreshError.value = describe(result.error)
+    refreshError.value = result.error
     return
   }
   notes.value = notes.value.map((item) =>
@@ -192,7 +191,7 @@ async function pin(note: Note) {
 }
 function requestDelete(note: Note) {
   deleting.value = note
-  error.value = ''
+  error.value = null
 }
 async function remove() {
   const note = deleting.value
@@ -204,15 +203,13 @@ async function remove() {
     : await service.trash(note)
   pending.value = false
   if (result.isErr()) {
-    error.value = describe(result.error)
+    error.value = result.error
     return
   }
   deleting.value = null
   notes.value = notes.value.filter((item) => item.id !== note.id)
   undoNote.value = !showingTrash.value && result.value ? result.value : null
-  toast.value = showingTrash.value
-    ? t('notes.toast.deleted')
-    : t('notes.toast.trashed')
+  toast.value = showingTrash.value ? 'deleted' : 'trashed'
   await refresh()
 }
 async function restore(note: Note) {
@@ -221,11 +218,11 @@ async function restore(note: Note) {
   const result = await service.restore(note)
   pending.value = false
   if (result.isErr()) {
-    refreshError.value = describe(result.error)
+    refreshError.value = result.error
     return
   }
   undoNote.value = null
-  toast.value = t('notes.toast.restored')
+  toast.value = 'restored'
   await refresh()
 }
 function shortcut(event: KeyboardEvent) {
@@ -299,7 +296,7 @@ onUnmounted(() => {
       <span class="note-count">{{ t('notes.count', notes.length) }}</span>
     </div>
     <div v-if="refreshError" class="inline-error" role="alert">
-      <span>{{ refreshError }}</span
+      <span>{{ noteErrorText(refreshError, t) }}</span
       ><UiButton size="sm" variant="secondary" @click="refresh">{{
         t('notes.tryAgain')
       }}</UiButton>
@@ -416,7 +413,7 @@ onUnmounted(() => {
         <UiInput
           id="note-title"
           v-model="title"
-          :error="fieldErrors.title"
+          :error="fieldError('title')"
           :label="t('notes.editor.title')"
           :placeholder="t('notes.editor.titlePlaceholder')"
           maxlength="120"
@@ -425,18 +422,14 @@ onUnmounted(() => {
         /><UiTextarea
           id="note-body"
           v-model="body"
-          :error="fieldErrors.body"
+          :error="fieldError('body')"
           :label="t('notes.editor.body')"
           :placeholder="t('notes.editor.bodyPlaceholder')"
           rows="9"
           :disabled="pending"
         />
-        <p
-          v-if="error && !fieldErrors.title && !fieldErrors.body"
-          class="form-error"
-          role="alert"
-        >
-          {{ error }}
+        <p v-if="error && !('field' in error)" class="form-error" role="alert">
+          {{ noteErrorText(error, t) }}
         </p>
         <div v-if="conflict" class="conflict-recovery">
           <p>{{ t('notes.conflict.explanation') }}</p>
@@ -493,7 +486,9 @@ onUnmounted(() => {
         }
       "
       ><p class="delete-preview">{{ deleting?.title }}</p>
-      <p v-if="error" class="form-error" role="alert">{{ error }}</p>
+      <p v-if="error" class="form-error" role="alert">
+        {{ noteErrorText(error, t) }}
+      </p>
       <template #footer
         ><UiButton
           variant="ghost"
@@ -516,9 +511,9 @@ onUnmounted(() => {
         >{{ t('notes.toast.undo') }}</UiButton
       >
       <UiToast
-        :message="toast"
+        :message="t(`notes.toast.${toast}`)"
         :dismiss-label="t('app.dismissNotification')"
-        @dismiss="toast = ''"
+        @dismiss="toast = null"
       />
     </div>
   </section>

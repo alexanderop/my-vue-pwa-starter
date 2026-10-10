@@ -11,16 +11,11 @@ import {
   DialogClose,
 } from 'reka-ui'
 import UiIconButton from './UiIconButton.vue'
-const {
-  title,
-  description,
-  fallbackFocus,
-  closeLabel = 'Close dialog',
-} = defineProps<{
+const { title, description, fallbackFocus, closeLabel } = defineProps<{
   title: string
   description?: string
   fallbackFocus?: string
-  closeLabel?: string
+  closeLabel: string
 }>()
 defineSlots<{ default(): unknown; footer?(): unknown }>()
 const open = defineModel<boolean>('open', { default: false })

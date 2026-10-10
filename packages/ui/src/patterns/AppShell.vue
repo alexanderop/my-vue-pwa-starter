@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useTemplateRef } from 'vue'
-const { skipLabel = 'Skip to content' } = defineProps<{ skipLabel?: string }>()
+defineProps<{ skipLabel: string }>()
 defineSlots<{ header(): unknown; default(): unknown; navigation(): unknown }>()
 const main = useTemplateRef<HTMLElement>('main-content')
 function skipToContent() {

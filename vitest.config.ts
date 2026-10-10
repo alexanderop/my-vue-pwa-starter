@@ -4,13 +4,13 @@ import tailwindcss from '@tailwindcss/vite'
 import { playwright } from '@vitest/browser-playwright'
 import { fileURLToPath } from 'node:url'
 import { goOfflineFor } from './vitest.commands'
-import { vueI18nFlags } from './vue-i18n.flags'
+import { vueI18nDefines } from './apps/playground/src/i18n/flags'
 
 export default defineConfig({
   test: {
     projects: [
       {
-        define: vueI18nFlags,
+        define: vueI18nDefines,
         test: {
           name: 'unit',
           environment: 'node',
@@ -31,7 +31,7 @@ export default defineConfig({
         },
       },
       {
-        define: vueI18nFlags,
+        define: vueI18nDefines,
         plugins: [vue(), tailwindcss()],
         optimizeDeps: {
           include: [

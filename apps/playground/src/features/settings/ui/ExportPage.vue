@@ -3,7 +3,11 @@ import { useTranslation } from '../../../i18n'
 import { Download, Lock } from '@lucide/vue'
 import { matchError } from '@starter/result'
 import { UiButton } from '@starter/ui'
-import type { BackupExportError, NotesService } from '../../notes'
+import {
+  noteErrorText,
+  type BackupExportError,
+  type NotesService,
+} from '../../notes'
 import BackupStatus from './BackupStatus.vue'
 import SettingsGroup from './SettingsGroup.vue'
 import SettingsRow from './SettingsRow.vue'
@@ -18,7 +22,7 @@ const { t } = useTranslation()
 const errorMessage = (error: BackupExportError) =>
   matchError(error, {
     CollectionTooLarge: () => t('settings.export.tooLarge'),
-    BackupStorageFailed: ({ failure }) => t(`notes.errors.${failure.reason}`),
+    BackupStorageFailed: ({ failure }) => noteErrorText(failure, t),
   })
 
 function download(json: string) {
@@ -32,17 +36,20 @@ function download(json: string) {
 }
 
 function exportBackup() {
-  return backup.run(async () => {
-    ;(await service.exportBackup()).match({
-      ok: ({ json, count }) => {
-        download(json)
-        backup.message.value = t('settings.export.started', count)
-      },
-      err: (error) => {
-        backup.error.value = errorMessage(error)
-      },
-    })
-  }, t('settings.export.failed'))
+  return backup.run(
+    async () => {
+      ;(await service.exportBackup()).match({
+        ok: ({ json, count }) => {
+          download(json)
+          backup.outcome.value = () => t('settings.export.started', count)
+        },
+        err: (error) => {
+          backup.failure.value = () => errorMessage(error)
+        },
+      })
+    },
+    () => t('settings.export.failed'),
+  )
 }
 </script>
 <template>

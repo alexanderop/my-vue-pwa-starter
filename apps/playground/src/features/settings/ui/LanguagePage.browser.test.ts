@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { page } from 'vitest/browser'
 import { Result } from '@starter/result'
 import { StorageUnavailable } from '@starter/composables'
-import { t } from '../../../i18n/testing'
+import { t, translator } from '../../../i18n/testing'
 import { closeSettingsRepositories, renderSettings } from './testing'
 
 describe('given the Language page', () => {
@@ -33,6 +33,26 @@ describe('given the Language page', () => {
       await expect
         .element(page.getByTestId('language-status'))
         .toBeEmptyDOMElement()
+    })
+
+    it('should explain a failed save in the newly chosen language', async () => {
+      // The app applies a language after the change handler, as useLanguage does.
+      const { i18n } = await renderSettings('/settings/language', {
+        setLanguage: () => {
+          queueMicrotask(() => {
+            i18n.global.locale.value = 'de'
+          })
+          return Result.err(new StorageUnavailable({ key: 'k' }))
+        },
+      })
+      await page.getByRole('radio', { name: 'Deutsch' }).click()
+      await expect
+        .element(
+          page.getByText(
+            translator('de').t('settings.saveErrors.StorageUnavailable'),
+          ),
+        )
+        .toBeVisible()
     })
 
     it('should explain a failed save', async () => {

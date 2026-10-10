@@ -9,6 +9,7 @@ const title = ref('')
   ><UiDialog
     v-model:open="open"
     title="New note"
+    close-label="Close dialog"
     description="Write something worth keeping."
     ><UiInput v-model="title" label="Title" /><template #footer
       ><UiButton @click="open = false">Save note</UiButton></template

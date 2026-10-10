@@ -14,6 +14,7 @@ import ImportPage from './ImportPage.vue'
 import InstallPage from './InstallPage.vue'
 import LanguagePage from './LanguagePage.vue'
 import UpdatesPage from './UpdatesPage.vue'
+import { appearanceSummary } from './appearanceSummary'
 import { appVersion } from './appVersion'
 import { definePage, type Page } from './definePage'
 import { languageLabel } from './languageLabel'
@@ -46,11 +47,7 @@ export const settingsGroups: readonly {
         id: 'appearance',
         icon: Palette,
         tone: 'primary',
-        value: ({ theme, accent }, t) =>
-          t('settings.appearance.summary', {
-            theme: t(`settings.appearance.themes.${theme}`),
-            accent: t(`settings.appearance.accents.${accent}`),
-          }),
+        value: ({ theme, accent }, t) => appearanceSummary(theme, accent, t),
         ...definePage(
           AppearancePage,
           ({ theme, setTheme, accent, setAccent }) => ({

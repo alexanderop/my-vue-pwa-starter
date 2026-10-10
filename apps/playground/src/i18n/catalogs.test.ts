@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { de } from './de'
 import { en } from './en'
-import { matchLocale } from './index'
+import { languages } from '../features/settings/domain/language'
+import { matchLocale, supportedLocales } from './index'
 
 // Flattens a catalog to [path, message] pairs, with list items as path.N.
 function entries(node: unknown, path = ''): [string, string][] {
@@ -45,6 +46,12 @@ describe('given the German catalog', () => {
   )
 })
 
+describe('given the Language setting', () => {
+  it('should offer System plus exactly the locales with a catalog', () => {
+    expect(languages).toEqual(['system', ...supportedLocales])
+  })
+})
+
 describe('given a browser language list', () => {
   it.each([
     [['de-AT', 'en'], 'de'],
@@ -52,7 +59,7 @@ describe('given a browser language list', () => {
     [['EN-gb'], 'en'],
     [['fr', 'es'], 'en'],
     [[], 'en'],
-  ] as const)('should pick a supported locale from %j', (languages, locale) => {
-    expect(matchLocale(languages)).toBe(locale)
+  ] as const)('should pick a supported locale from %j', (preferred, locale) => {
+    expect(matchLocale(preferred)).toBe(locale)
   })
 })

@@ -1,5 +1,5 @@
-// The source catalog. Every other locale must match its shape: `Messages` in
-// ./index.ts turns a missing or extra key into a type error.
+// The source catalog. Its literal text types the arguments of each key, and
+// `Catalog` in ./index.ts makes every other locale match it key for key.
 export const en = {
   app: {
     tagline: 'Your own little corner.',
@@ -266,4 +266,4 @@ export const en = {
         'Choose a valid Fieldnotes version 1 backup with no more than 5,000 notes.',
     },
   },
-}
+} as const

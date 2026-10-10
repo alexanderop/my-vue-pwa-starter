@@ -6,7 +6,7 @@ defineSlots<{ default(): unknown }>()
 const { t } = useTranslation()
 const failed = ref(false)
 const heading = useTemplateRef<HTMLElement>('recovery-heading')
-const copyStatus = ref('')
+const copyStatus = ref<'copied' | 'copyUnavailable' | null>(null)
 const diagnostics = JSON.stringify(
   {
     app: 'Fieldnotes',
@@ -27,9 +27,9 @@ function reload() {
 async function copyDiagnostics() {
   try {
     await navigator.clipboard.writeText(diagnostics)
-    copyStatus.value = t('app.recovery.copied')
+    copyStatus.value = 'copied'
   } catch {
-    copyStatus.value = t('app.recovery.copyUnavailable')
+    copyStatus.value = 'copyUnavailable'
   }
 }
 </script>
@@ -43,7 +43,9 @@ async function copyDiagnostics() {
     <UiButton variant="secondary" @click="copyDiagnostics">{{
       t('app.recovery.copy')
     }}</UiButton>
-    <p role="status">{{ copyStatus }}</p>
+    <p role="status">
+      {{ copyStatus && t(`app.recovery.${copyStatus}`) }}
+    </p>
     <details>
       <summary>{{ t('app.recovery.diagnostics') }}</summary>
       <pre>{{ diagnostics }}</pre>

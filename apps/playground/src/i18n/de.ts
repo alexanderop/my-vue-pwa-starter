@@ -1,6 +1,6 @@
-import type { en } from './en'
+import type { Catalog } from './index'
 
-export const de: typeof en = {
+export const de: Catalog = {
   app: {
     tagline: 'Deine eigene kleine Ecke.',
     offline: 'Offline',

@@ -3,6 +3,7 @@ import { computed, type Component } from 'vue'
 import { useTranslation } from '../../../i18n'
 import { Check, Monitor, Moon, Plus, Sun } from '@lucide/vue'
 import { accents, themes, type Accent, type Theme } from '../domain/appearance'
+import { appearanceSummary } from './appearanceSummary'
 import type { SaveChoice } from './settingsContext'
 import SegmentedControl from './SegmentedControl.vue'
 import SettingsScreen from './SettingsScreen.vue'
@@ -28,12 +29,7 @@ const themeOptions = computed(() =>
     icon: themeIcons[id],
   })),
 )
-const summary = computed(() =>
-  t('settings.appearance.summary', {
-    theme: t(`settings.appearance.themes.${theme}`),
-    accent: t(`settings.appearance.accents.${accent}`),
-  }),
-)
+const summary = computed(() => appearanceSummary(theme, accent, t))
 const { message, report } = useSaveStatus()
 </script>
 <template>

@@ -2,13 +2,13 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import { vueI18nFlags } from '../../vue-i18n.flags'
+import { vueI18nDefines } from './src/i18n/flags'
 
 export default defineConfig({
   base: process.env.VITE_BASE_PATH ?? '/',
   define: {
     __APP_VERSION__: JSON.stringify(process.env.VITE_APP_VERSION ?? '0.1.0'),
-    ...vueI18nFlags,
+    ...vueI18nDefines,
   },
   plugins: [
     vue(),

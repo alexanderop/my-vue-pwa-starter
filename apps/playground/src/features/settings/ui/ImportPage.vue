@@ -2,7 +2,11 @@
 import { useTranslation } from '../../../i18n'
 import { Check, CircleAlert, FileText, Upload } from '@lucide/vue'
 import { matchError } from '@starter/result'
-import type { BackupImportError, NotesService } from '../../notes'
+import {
+  noteErrorText,
+  type BackupImportError,
+  type NotesService,
+} from '../../notes'
 import BackupStatus from './BackupStatus.vue'
 import SettingsGroup from './SettingsGroup.vue'
 import SettingsScreen from './SettingsScreen.vue'
@@ -18,7 +22,7 @@ const errorMessage = (error: BackupImportError) =>
     BackupFileTooLarge: () => t('settings.import.tooLarge'),
     BackupUnreadable: () => t('settings.import.unreadable'),
     InvalidBackup: () => t('settings.import.invalid'),
-    BackupStorageFailed: ({ failure }) => t(`notes.errors.${failure.reason}`),
+    BackupStorageFailed: ({ failure }) => noteErrorText(failure, t),
   })
 
 async function importBackup(event: Event) {
@@ -26,20 +30,23 @@ async function importBackup(event: Event) {
   if (!(input instanceof HTMLInputElement)) return
   const file = input.files?.[0]
   if (!file) return
-  await backup.run(async () => {
-    try {
-      ;(await service.importBackup(file)).match({
-        ok: (count) => {
-          backup.message.value = t('settings.import.imported', count)
-        },
-        err: (error) => {
-          backup.error.value = errorMessage(error)
-        },
-      })
-    } finally {
-      input.value = ''
-    }
-  }, t('settings.import.failed'))
+  await backup.run(
+    async () => {
+      try {
+        ;(await service.importBackup(file)).match({
+          ok: (count) => {
+            backup.outcome.value = () => t('settings.import.imported', count)
+          },
+          err: (error) => {
+            backup.failure.value = () => errorMessage(error)
+          },
+        })
+      } finally {
+        input.value = ''
+      }
+    },
+    () => t('settings.import.failed'),
+  )
 }
 </script>
 <template>

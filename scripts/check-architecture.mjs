@@ -114,9 +114,9 @@ for (const file of [...files(app), ...files(ui), ...files(composables)]) {
     if (targetLayer === 'application' && layer === 'ports')
       report('Ports cannot depend on application services')
     if (
-      specifier === 'vue-i18n' &&
+      /^(vue-i18n|@intlify\/)/.test(specifier) &&
       file.startsWith(app) &&
-      !file.startsWith(path.join(app, 'i18n'))
+      path.relative(path.join(app, 'i18n'), file).startsWith('..')
     )
       report('Translate through src/i18n so keys stay type-checked')
     if (owner && target?.startsWith(path.join(app, 'app')))

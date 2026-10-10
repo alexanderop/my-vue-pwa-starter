@@ -30,12 +30,14 @@ const visible = ref(true)
         <UiToast
           v-if="visible"
           message="Your note is saved."
+          dismiss-label="Dismiss notification"
           @dismiss="visible = false"
         /><UiButton v-else variant="secondary" @click="visible = true"
           >Show notification</UiButton
         ><UiToast
           tone="error"
           message="We couldn't save your note. Your draft is still here."
+          dismiss-label="Dismiss notification"
         /></div></Variant
   ></Story>
 </template>

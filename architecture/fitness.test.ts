@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { ESLint } from 'eslint'
 import { describe, expect, it } from 'vitest'
 import { accents } from '../apps/playground/src/features/settings/domain/appearance'
 
@@ -105,5 +106,31 @@ describe('given the source tree', () => {
       ),
     )
     expect(suppressed).toEqual([])
+  })
+})
+
+describe('given an app template with literal text', () => {
+  const lint = async (template: string) => {
+    const eslint = new ESLint({ cwd: root })
+    const [result] = await eslint.lintText(
+      `<script setup lang="ts"></script>\n<template>${template}</template>\n`,
+      { filePath: `${root}apps/playground/src/app/Fixture.vue` },
+    )
+    return (result?.messages ?? []).map((message) => message.ruleId)
+  }
+
+  it.each([
+    '<p>Hello</p>',
+    '<SettingsRow label="Format" />',
+    '<UiInput placeholder="Find a thought" />',
+    '<UiDialog close-label="Close" />',
+  ])('should reject %s', async (template) => {
+    expect(await lint(template)).toContain('vue/no-bare-strings-in-template')
+  })
+
+  it('should accept text from the catalogs', async () => {
+    expect(await lint(`<SettingsRow :label="t('x')" />`)).not.toContain(
+      'vue/no-bare-strings-in-template',
+    )
   })
 })

@@ -36,7 +36,6 @@ export type NotesService = {
 }
 
 const storageError: NoteError = {
-  kind: 'storage',
   reason: 'storageFailed',
 }
 

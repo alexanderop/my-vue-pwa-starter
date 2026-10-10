@@ -1,7 +1,7 @@
 import { ref, watchEffect } from 'vue'
 import { useEventListener, useLocalStorage } from '@starter/composables'
 import { languageSchema } from '../features/settings'
-import { matchLocale, useTranslation } from '../i18n'
+import { matchLocale, useLocaleSetter, type Locale } from '../i18n'
 
 export function useLanguage() {
   const { state: language, set: setLanguage } = useLocalStorage(
@@ -13,13 +13,15 @@ export function useLanguage() {
   useEventListener(window, 'languagechange', () => {
     browserLanguages.value = navigator.languages
   })
-  const { locale } = useTranslation()
+  const setLocale = useLocaleSetter()
   watchEffect(() => {
-    locale.value =
+    // A language id that is not a Locale fails to compile here.
+    const locale: Locale =
       language.value === 'system'
         ? matchLocale(browserLanguages.value)
         : language.value
-    document.documentElement.lang = locale.value
+    setLocale(locale)
+    document.documentElement.lang = locale
   })
   return { language, setLanguage }
 }

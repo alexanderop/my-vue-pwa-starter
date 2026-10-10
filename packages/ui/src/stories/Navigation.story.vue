@@ -13,7 +13,7 @@ const items = [
     title="Patterns / Application shell"
     :layout="{ type: 'single', iframe: true }"
     ><Variant title="Responsive navigation"
-      ><AppShell
+      ><AppShell skip-label="Skip to content"
         ><template #header
           ><strong>Fieldnotes</strong
           ><UiBadge tone="success">Local first</UiBadge></template
@@ -25,6 +25,7 @@ const items = [
         ><template #navigation
           ><AppNavigation
             v-model="active"
+            label="Main navigation"
             :items="items" /></template></AppShell></Variant
   ></Story>
 </template>

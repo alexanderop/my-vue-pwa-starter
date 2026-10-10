@@ -4,11 +4,11 @@ import UiIconButton from './UiIconButton.vue'
 const {
   message,
   tone = 'status',
-  dismissLabel = 'Dismiss notification',
+  dismissLabel,
 } = defineProps<{
   message: string
   tone?: 'status' | 'error'
-  dismissLabel?: string
+  dismissLabel: string
 }>()
 defineEmits<{ dismiss: [] }>()
 </script>

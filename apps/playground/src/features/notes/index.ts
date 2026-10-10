@@ -5,3 +5,4 @@ export {
 export { createIndexedDbNotes } from './adapters/indexeddb/createIndexedDbNotes'
 export type { Note } from './domain/note'
 export type { BackupExportError, BackupImportError } from './domain/backup'
+export { noteErrorText } from './ui/noteErrorText'

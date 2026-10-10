@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
-const { label = 'Main navigation' } = defineProps<{
-  label?: string
+defineProps<{
+  label: string
   items: readonly { id: string; label: string; icon: Component }[]
   modelValue: string
 }>()
