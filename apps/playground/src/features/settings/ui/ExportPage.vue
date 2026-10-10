@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useTranslation } from '../../../i18n'
 import { Download, Lock } from '@lucide/vue'
 import { matchError } from '@starter/result'
 import { UiButton } from '@starter/ui'
@@ -12,14 +13,12 @@ import { useBackupTask } from './useBackupTask'
 const { service } = defineProps<{ service: NotesService }>()
 const emit = defineEmits<{ 'busy-change': [busy: boolean] }>()
 const backup = useBackupTask((busy) => emit('busy-change', busy))
-
-const plural = (count: number) => `${count} ${count === 1 ? 'note' : 'notes'}`
+const { t } = useTranslation()
 
 const errorMessage = (error: BackupExportError) =>
   matchError(error, {
-    CollectionTooLarge: () =>
-      'This collection exceeds the backup limit of 5,000 notes or 10 MB. No backup was downloaded. Your notes are unchanged.',
-    BackupStorageFailed: ({ failure }) => failure.message,
+    CollectionTooLarge: () => t('settings.export.tooLarge'),
+    BackupStorageFailed: ({ failure }) => t(`notes.errors.${failure.reason}`),
   })
 
 function download(json: string) {
@@ -37,37 +36,40 @@ function exportBackup() {
     ;(await service.exportBackup()).match({
       ok: ({ json, count }) => {
         download(json)
-        backup.message.value = `Backup download started: ${plural(count)}, including trash. Keep it somewhere safe.`
+        backup.message.value = t('settings.export.started', count)
       },
       err: (error) => {
         backup.error.value = errorMessage(error)
       },
     })
-  }, 'The backup could not be downloaded. Please try again.')
+  }, t('settings.export.failed'))
 }
 </script>
 <template>
-  <SettingsScreen title="Export backup">
+  <SettingsScreen :title="t('settings.export.title')">
     <div class="intro">
-      <h2>Back up your notes</h2>
-      <p>
-        Download one file with every note, including Trash. Keep it somewhere
-        safe in case this device is lost.
-      </p>
+      <h2>{{ t('settings.export.heading') }}</h2>
+      <p>{{ t('settings.export.intro') }}</p>
     </div>
 
     <SettingsGroup>
-      <SettingsRow label="Includes" value="All notes and Trash" />
-      <SettingsRow label="Format" value="JSON file" />
-      <SettingsRow label="Limit" value="5,000 notes or 10 MB" />
+      <SettingsRow
+        :label="t('settings.export.includes')"
+        :value="t('settings.export.includesValue')"
+      />
+      <SettingsRow
+        :label="t('settings.export.format')"
+        :value="t('settings.export.formatValue')"
+      />
+      <SettingsRow
+        :label="t('settings.export.limit')"
+        :value="t('settings.export.limitValue')"
+      />
     </SettingsGroup>
 
     <p class="warning">
       <Lock :size="20" aria-hidden="true" />
-      <span
-        >Backups are plain text. Anyone with the file can read your notes, so
-        store it somewhere private.</span
-      >
+      <span>{{ t('settings.export.warning') }}</span>
     </p>
 
     <BackupStatus
@@ -77,7 +79,9 @@ function exportBackup() {
     />
 
     <UiButton class="action" :disabled="backup.busy.value" @click="exportBackup"
-      ><Download :size="18" aria-hidden="true" />Export backup</UiButton
+      ><Download :size="18" aria-hidden="true" />{{
+        t('settings.export.action')
+      }}</UiButton
     >
   </SettingsScreen>
 </template>

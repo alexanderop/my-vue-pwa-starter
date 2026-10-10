@@ -11,10 +11,16 @@ import {
   DialogClose,
 } from 'reka-ui'
 import UiIconButton from './UiIconButton.vue'
-const { title, description, fallbackFocus } = defineProps<{
+const {
+  title,
+  description,
+  fallbackFocus,
+  closeLabel = 'Close dialog',
+} = defineProps<{
   title: string
   description?: string
   fallbackFocus?: string
+  closeLabel?: string
 }>()
 defineSlots<{ default(): unknown; footer?(): unknown }>()
 const open = defineModel<boolean>('open', { default: false })
@@ -90,7 +96,7 @@ function cancelDrag() {
             >
           </div>
           <DialogClose as-child
-            ><UiIconButton label="Close dialog"><X :size="20" /></UiIconButton
+            ><UiIconButton :label="closeLabel"><X :size="20" /></UiIconButton
           ></DialogClose>
         </header>
         <div class="ui-dialog__body"><slot /></div>

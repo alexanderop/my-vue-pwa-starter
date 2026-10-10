@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { nextTick, onErrorCaptured, ref, useTemplateRef } from 'vue'
+import { useTranslation } from '../i18n'
 import { UiButton } from '@starter/ui'
 defineSlots<{ default(): unknown }>()
+const { t } = useTranslation()
 const failed = ref(false)
 const heading = useTemplateRef<HTMLElement>('recovery-heading')
 const copyStatus = ref('')
@@ -25,30 +27,25 @@ function reload() {
 async function copyDiagnostics() {
   try {
     await navigator.clipboard.writeText(diagnostics)
-    copyStatus.value =
-      'Diagnostics copied. No notes or personal data are included.'
+    copyStatus.value = t('app.recovery.copied')
   } catch {
-    copyStatus.value =
-      'Copy is unavailable. You can select the diagnostics below.'
+    copyStatus.value = t('app.recovery.copyUnavailable')
   }
 }
 </script>
 <template>
   <section v-if="failed" role="alert" aria-labelledby="recovery-title">
     <h1 id="recovery-title" ref="recovery-heading" tabindex="-1">
-      Something went wrong.
+      {{ t('app.recovery.title') }}
     </h1>
-    <p>
-      Your saved notes remain on this device. Reload to try again. Any unsaved
-      draft may be lost.
-    </p>
-    <UiButton @click="reload">Reload app</UiButton>
-    <UiButton variant="secondary" @click="copyDiagnostics"
-      >Copy diagnostics</UiButton
-    >
+    <p>{{ t('app.recovery.body') }}</p>
+    <UiButton @click="reload">{{ t('app.recovery.reload') }}</UiButton>
+    <UiButton variant="secondary" @click="copyDiagnostics">{{
+      t('app.recovery.copy')
+    }}</UiButton>
     <p role="status">{{ copyStatus }}</p>
     <details>
-      <summary>Safe diagnostics</summary>
+      <summary>{{ t('app.recovery.diagnostics') }}</summary>
       <pre>{{ diagnostics }}</pre>
     </details>
   </section>

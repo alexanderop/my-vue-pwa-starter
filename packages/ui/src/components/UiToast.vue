@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { X } from '@lucide/vue'
 import UiIconButton from './UiIconButton.vue'
-const { message, tone = 'status' } = defineProps<{
+const {
+  message,
+  tone = 'status',
+  dismissLabel = 'Dismiss notification',
+} = defineProps<{
   message: string
   tone?: 'status' | 'error'
+  dismissLabel?: string
 }>()
 defineEmits<{ dismiss: [] }>()
 </script>
@@ -14,7 +19,7 @@ defineEmits<{ dismiss: [] }>()
     :role="tone === 'error' ? 'alert' : 'status'"
   >
     <span>{{ message }}</span
-    ><UiIconButton label="Dismiss notification" @click="$emit('dismiss')"
+    ><UiIconButton :label="dismissLabel" @click="$emit('dismiss')"
       ><X :size="16"
     /></UiIconButton>
   </div>

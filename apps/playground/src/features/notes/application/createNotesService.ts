@@ -37,7 +37,7 @@ export type NotesService = {
 
 const storageError: NoteError = {
   kind: 'storage',
-  message: 'Your notes could not be saved or loaded. Please try again.',
+  reason: 'storageFailed',
 }
 
 async function safely<T>(

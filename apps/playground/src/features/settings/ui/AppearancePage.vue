@@ -1,18 +1,12 @@
 <script setup lang="ts">
-import { ref, type Component } from 'vue'
+import { computed, type Component } from 'vue'
+import { useTranslation } from '../../../i18n'
 import { Check, Monitor, Moon, Plus, Sun } from '@lucide/vue'
-import { matchError, type Result } from '@starter/result'
-import type { StorageWriteError } from '@starter/composables'
-import {
-  accents,
-  appearanceSummary,
-  themes,
-  type Accent,
-  type Theme,
-} from '../domain/appearance'
+import { accents, themes, type Accent, type Theme } from '../domain/appearance'
 import type { SaveChoice } from './settingsContext'
 import SegmentedControl from './SegmentedControl.vue'
 import SettingsScreen from './SettingsScreen.vue'
+import { useSaveStatus } from './useSaveStatus'
 
 const { theme, setTheme, accent, setAccent } = defineProps<{
   theme: Theme
@@ -20,53 +14,52 @@ const { theme, setTheme, accent, setAccent } = defineProps<{
   accent: Accent
   setAccent: SaveChoice<Accent>
 }>()
+const { t } = useTranslation()
 
 const themeIcons: Record<Theme, Component> = {
   system: Monitor,
   light: Sun,
   dark: Moon,
 }
-const themeOptions = themes.map((option) => ({
-  ...option,
-  icon: themeIcons[option.id],
-}))
-
-const message = ref('')
-function report(saved: Result<void, StorageWriteError>) {
-  message.value = saved.match({
-    ok: () => '',
-    err: (error) =>
-      matchError(error, {
-        StorageQuotaExceeded: () =>
-          'Storage is full. This theme lasts until you close the app.',
-        StorageUnavailable: () =>
-          'This browser blocks saving. This theme lasts until you close the app.',
-      }),
-  })
-}
+const themeOptions = computed(() =>
+  themes.map((id) => ({
+    id,
+    label: t(`settings.appearance.themes.${id}`),
+    icon: themeIcons[id],
+  })),
+)
+const summary = computed(() =>
+  t('settings.appearance.summary', {
+    theme: t(`settings.appearance.themes.${theme}`),
+    accent: t(`settings.appearance.accents.${accent}`),
+  }),
+)
+const { message, report } = useSaveStatus()
 </script>
 <template>
-  <SettingsScreen title="Appearance">
+  <SettingsScreen :title="t('settings.appearance.title')">
     <div class="preview" aria-hidden="true">
       <div class="preview-top">
-        <span class="preview-label">Preview</span>
-        <span>{{ appearanceSummary(theme, accent) }}</span>
+        <span class="preview-label">{{
+          t('settings.appearance.preview')
+        }}</span>
+        <span>{{ summary }}</span>
       </div>
       <div class="sample">
         <div class="sample-top">
-          <span>Note</span>
+          <span>{{ t('settings.appearance.sampleLabel') }}</span>
           <span>08:12</span>
         </div>
-        <h3>Morning pages</h3>
-        <p>Slept well. Finish the chapter before lunch.</p>
+        <h3>{{ t('settings.appearance.sampleTitle') }}</h3>
+        <p>{{ t('settings.appearance.sampleBody') }}</p>
       </div>
-      <span class="pill"><Plus :size="16" />New note</span>
+      <span class="pill"><Plus :size="16" />{{ t('notes.newNote') }}</span>
     </div>
 
     <section class="section">
-      <h2>Mode</h2>
+      <h2>{{ t('settings.appearance.mode') }}</h2>
       <SegmentedControl
-        legend="Mode"
+        :legend="t('settings.appearance.mode')"
         name="theme"
         :options="themeOptions"
         :model-value="theme"
@@ -75,25 +68,25 @@ function report(saved: Result<void, StorageWriteError>) {
     </section>
 
     <section class="section">
-      <h2>Accent colour</h2>
+      <h2>{{ t('settings.appearance.accent') }}</h2>
       <fieldset class="accents">
-        <legend class="sr-only">Accent colour</legend>
-        <label v-for="option in accents" :key="option.id">
+        <legend class="sr-only">{{ t('settings.appearance.accent') }}</legend>
+        <label v-for="id in accents" :key="id">
           <input
             type="radio"
             name="accent"
-            :value="option.id"
-            :checked="accent === option.id"
-            @change="report(setAccent(option.id))"
+            :value="id"
+            :checked="accent === id"
+            @change="report(setAccent(id))"
           />
           <span class="swatch"
-            ><span class="dot" :data-accent="option.id"
+            ><span class="dot" :data-accent="id"
               ><Check :size="20" stroke-width="3" aria-hidden="true" /></span
           ></span>
-          <span class="name">{{ option.label }}</span>
+          <span class="name">{{ t(`settings.appearance.accents.${id}`) }}</span>
         </label>
       </fieldset>
-      <p class="help">Changes apply right away and stay on this device.</p>
+      <p class="help">{{ t('settings.appearance.help') }}</p>
       <p role="status" class="help" data-testid="theme-status">
         {{ message }}
       </p>

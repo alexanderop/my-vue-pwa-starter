@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useTranslation } from '../../../i18n'
 import { BookOpen } from '@lucide/vue'
 import { UiButton } from '@starter/ui'
 import type { AppCapabilities } from '../ports/settings'
@@ -9,39 +10,18 @@ import SettingsScreen from './SettingsScreen.vue'
 defineProps<{ pwa: AppCapabilities }>()
 
 type Platform = 'ios' | 'android' | 'desktop'
-
-const platforms = [
-  {
-    id: 'ios',
-    label: 'iPhone',
-    steps: [
-      'Open this page in Safari.',
-      'Tap Share, then Add to Home Screen. You may need to scroll through the actions.',
-      'Tap Add, then open Fieldnotes from your Home Screen.',
-    ],
-  },
-  {
-    id: 'android',
-    label: 'Android',
-    steps: [
-      'Open this page in Chrome.',
-      'Open the browser menu and choose Install app or Add to Home screen.',
-      'Follow the browser instructions. The wording can vary by device.',
-    ],
-  },
-  {
-    id: 'desktop',
-    label: 'Computer',
-    steps: [
-      'In Chrome or Edge, look for the install icon in the address bar or Install in the browser menu.',
-      'In Safari on a supported Mac, choose File → Add to Dock.',
-    ],
-  },
-] as const satisfies readonly {
-  id: Platform
-  label: string
-  steps: readonly string[]
-}[]
+const platformIds = [
+  'ios',
+  'android',
+  'desktop',
+] as const satisfies readonly Platform[]
+const { t, list } = useTranslation()
+const platforms = computed(() =>
+  platformIds.map((id) => ({
+    id,
+    label: t(`settings.install.platforms.${id}`),
+  })),
+)
 
 function detectPlatform(): Platform {
   const touchMac =
@@ -51,34 +31,32 @@ function detectPlatform(): Platform {
   return 'desktop'
 }
 const platform = ref(detectPlatform())
-const steps = computed(
-  () => platforms.find((option) => option.id === platform.value)?.steps ?? [],
-)
+const steps = computed(() => list(`settings.install.steps.${platform.value}`))
 </script>
 <template>
-  <SettingsScreen title="Add to Home Screen">
+  <SettingsScreen :title="t('settings.install.title')">
     <div class="hero">
       <span class="icon"><BookOpen :size="38" aria-hidden="true" /></span>
-      <h2>Keep Fieldnotes close</h2>
-      <p>
-        Open it from your Home Screen like any other app. It works without a
-        connection.
-      </p>
+      <h2>{{ t('settings.install.heading') }}</h2>
+      <p>{{ t('settings.install.intro') }}</p>
       <span class="pill" :class="{ installed: pwa.installed.value }">{{
         pwa.installed.value
-          ? 'Installed on this device'
-          : 'Not installed on this device'
+          ? t('settings.install.installedHere')
+          : t('settings.install.notInstalledHere')
       }}</span>
     </div>
 
     <template v-if="!pwa.installed.value">
-      <UiButton v-if="pwa.canInstall.value" class="install" @click="pwa.install"
-        >Install Fieldnotes</UiButton
+      <UiButton
+        v-if="pwa.canInstall.value"
+        class="install"
+        @click="pwa.install"
+        >{{ t('settings.install.action') }}</UiButton
       >
       <template v-else>
         <SegmentedControl
           v-model="platform"
-          legend="Your device"
+          :legend="t('settings.install.device')"
           name="platform"
           :options="platforms"
         />
@@ -88,10 +66,7 @@ const steps = computed(
             ><span class="step">{{ step }}</span>
           </li>
         </ol>
-        <p class="help">
-          If your browser offers no installation option, you can still use
-          Fieldnotes in a tab.
-        </p>
+        <p class="help">{{ t('settings.install.fallback') }}</p>
       </template>
     </template>
   </SettingsScreen>

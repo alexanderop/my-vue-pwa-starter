@@ -4,6 +4,7 @@ import {
   useMediaQuery,
   useOnline,
 } from '@starter/composables'
+import type { UpdateStatus } from '../../features/settings'
 
 type InstallPrompt = Event & {
   prompt(): Promise<void>
@@ -21,7 +22,7 @@ export function usePwa(busy: Ref<boolean>) {
   const deferred = ref(false)
   const updating = ref(false)
   const checking = ref(false)
-  const status = ref('')
+  const status = ref<UpdateStatus | null>(null)
   const standalone = useMediaQuery('(display-mode: standalone)')
   const accepted = ref(false)
   const installed = computed(() => standalone.value || accepted.value)
@@ -43,17 +44,14 @@ export function usePwa(busy: Ref<boolean>) {
     scope.run(() => useEventListener(worker, 'statechange', sync))
     sync()
   }
-  function checkedStatus() {
-    if (updateState.value !== 'current')
-      return 'A new version is ready when you are.'
-    if (registration?.installing) return 'Checking the latest version…'
-    return 'You are up to date.'
+  function checkedStatus(): UpdateStatus {
+    if (updateState.value !== 'current') return 'updateReady'
+    if (registration?.installing) return 'checking'
+    return 'upToDate'
   }
   async function checkForUpdates() {
     if (!registration) {
-      status.value = import.meta.env.DEV
-        ? 'Offline installation is available in the production build.'
-        : 'The app is not ready to check for updates yet.'
+      status.value = import.meta.env.DEV ? 'devBuild' : 'notReady'
       return
     }
     checking.value = true
@@ -63,8 +61,7 @@ export function usePwa(busy: Ref<boolean>) {
       if (updateState.value !== 'current') deferred.value = false
       status.value = checkedStatus()
     } catch {
-      status.value =
-        'Could not check for updates. Try again when you are online.'
+      status.value = 'checkFailed'
     } finally {
       checking.value = false
     }
@@ -89,7 +86,7 @@ export function usePwa(busy: Ref<boolean>) {
       const choice = await available.userChoice
       if (choice.outcome === 'accepted') accepted.value = true
     } catch {
-      status.value = 'Use your browser menu to install this app.'
+      status.value = 'installManually'
     }
   }
   useEventListener(window, 'beforeinstallprompt', (event) => {
@@ -111,9 +108,7 @@ export function usePwa(busy: Ref<boolean>) {
         deferred.value = false
         updating.value = false
         if (approved && !busy.value) window.location.reload()
-        else
-          status.value =
-            'An update is ready. Save your changes, then update this tab.'
+        else status.value = 'reloadToUpdate'
       }),
     )
     void navigator.serviceWorker
@@ -133,9 +128,7 @@ export function usePwa(busy: Ref<boolean>) {
         if (value.installing) watchWorker(value.installing)
       })
       .catch(() => {
-        if (scope.active)
-          status.value =
-            'Offline setup could not finish. Reopen the app online to try again.'
+        if (scope.active) status.value = 'offlineSetupFailed'
       })
   })
   return {

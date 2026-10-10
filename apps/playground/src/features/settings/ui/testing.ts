@@ -3,6 +3,7 @@ import { vi } from 'vitest'
 import { render } from 'vitest-browser-vue'
 import { RouterView, createMemoryHistory, createRouter } from 'vue-router'
 import { Result } from '@starter/result'
+import { createAppI18n } from '../../../i18n'
 import { createIndexedDbNotes, createNotesService } from '../../notes'
 import { settingsRoute } from './routes'
 import { settingsPropsFor } from './screens'
@@ -38,13 +39,15 @@ export async function renderSettings(
     setTheme: () => Result.ok(),
     accent: 'blue',
     setAccent: () => Result.ok(),
+    language: 'system',
+    setLanguage: () => Result.ok(),
     pwa: {
       installed: { value: false },
       canInstall: { value: false },
       offlineReady: { value: true },
       updateAvailable: { value: false },
       checking: { value: false },
-      status: { value: '' },
+      status: { value: null },
       install: async () => {},
       checkForUpdates: async () => {},
     },
@@ -72,7 +75,7 @@ export async function renderSettings(
           route: { name?: unknown }
         }) => h(Component, settingsPropsFor(route.name, context)),
       }),
-    { global: { plugins: [router] } },
+    { global: { plugins: [router, createAppI18n('en')] } },
   )
   return { service, router }
 }

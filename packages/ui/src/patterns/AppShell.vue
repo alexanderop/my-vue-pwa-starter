@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useTemplateRef } from 'vue'
+const { skipLabel = 'Skip to content' } = defineProps<{ skipLabel?: string }>()
 defineSlots<{ header(): unknown; default(): unknown; navigation(): unknown }>()
 const main = useTemplateRef<HTMLElement>('main-content')
 function skipToContent() {
@@ -9,8 +10,11 @@ function skipToContent() {
 </script>
 <template>
   <div class="ui-app-shell">
-    <a href="#main-content" class="ui-skip-link" @click.prevent="skipToContent"
-      >Skip to content</a
+    <a
+      href="#main-content"
+      class="ui-skip-link"
+      @click.prevent="skipToContent"
+      >{{ skipLabel }}</a
     >
     <header class="ui-app-header"><slot name="header" /></header>
     <main

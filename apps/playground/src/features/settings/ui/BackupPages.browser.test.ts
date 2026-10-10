@@ -1,5 +1,6 @@
 import { afterEach, assert, describe, expect, it } from 'vitest'
 import { page } from 'vitest/browser'
+import { t } from '../../../i18n/testing'
 import { closeSettingsRepositories, renderSettings } from './testing'
 
 describe('given the Export backup page', () => {
@@ -8,10 +9,12 @@ describe('given the Export backup page', () => {
   it('should start the download and report the note count', async () => {
     const { service } = await renderSettings('/settings/export')
     await service.create({ title: 'Keep me', body: 'Original content' })
-    await page.getByRole('button', { name: 'Export backup' }).click()
+    await page
+      .getByRole('button', { name: t('settings.export.action') })
+      .click()
     await expect
       .poll(() => page.getByTestId('backup-status').element().textContent)
-      .toContain('Backup download started: 1 note, including trash.')
+      .toContain(t('settings.export.started', 1))
   })
 })
 
@@ -27,13 +30,13 @@ describe('given the Import backup page', () => {
     expect(created.isOk()).toBe(true)
     const backup = await service.exportData()
     assert(backup.isOk(), 'Unable to prepare backup')
-    const input = page.getByLabelText('Choose a Fieldnotes backup')
+    const input = page.getByLabelText(t('settings.import.choose'))
     await input.upload(
       new File(['broken json'], 'broken.json', { type: 'application/json' }),
     )
     await expect.element(page.getByRole('alert')).toBeVisible()
     expect(page.getByRole('alert').element().textContent).toContain(
-      'not readable JSON',
+      t('settings.import.unreadable'),
     )
     await input.upload(
       new File(
@@ -50,7 +53,7 @@ describe('given the Import backup page', () => {
     )
     await expect
       .poll(() => page.getByTestId('backup-status').element().textContent)
-      .toContain('Imported 1 note as new copies')
+      .toContain(t('settings.import.imported', 1))
     await expect.element(page.getByRole('alert')).not.toBeInTheDocument()
     const result = await service.list()
     assert(result.isOk(), 'Unable to read imported notes')
@@ -62,7 +65,7 @@ describe('given the Import backup page', () => {
   it('should reject a structurally invalid backup without changing notes', async () => {
     const { service } = await renderSettings('/settings/import')
     await service.create({ title: 'Keep me', body: '' })
-    await page.getByLabelText('Choose a Fieldnotes backup').upload(
+    await page.getByLabelText(t('settings.import.choose')).upload(
       new File(
         [
           JSON.stringify({
@@ -89,7 +92,7 @@ describe('given the Import backup page', () => {
     })
     await service.create({ title: 'Keep me', body: '' })
     await page
-      .getByLabelText('Choose a Fieldnotes backup')
+      .getByLabelText(t('settings.import.choose'))
       .upload(
         new File(['broken json'], 'broken.json', { type: 'application/json' }),
       )

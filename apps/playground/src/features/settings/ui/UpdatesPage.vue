@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useTranslation } from '../../../i18n'
 import { Check, Info, RefreshCw, Wifi } from '@lucide/vue'
 import { UiButton } from '@starter/ui'
 import type { AppCapabilities } from '../ports/settings'
@@ -9,36 +10,47 @@ import SettingsRow from './SettingsRow.vue'
 import SettingsScreen from './SettingsScreen.vue'
 
 const { pwa } = defineProps<{ pwa: AppCapabilities }>()
+const { t } = useTranslation()
 const title = computed(() => {
-  if (pwa.checking.value) return 'Checking for updates…'
-  if (pwa.updateAvailable.value) return 'A fresh version is ready'
-  return 'You are up to date'
+  if (pwa.checking.value) return t('settings.updates.checking')
+  if (pwa.updateAvailable.value) return t('settings.updates.ready')
+  return t('settings.updates.current')
 })
+const status = computed(() =>
+  pwa.status.value ? t(`settings.updates.status.${pwa.status.value}`) : '',
+)
 </script>
 <template>
-  <SettingsScreen title="Updates & offline">
+  <SettingsScreen :title="t('settings.updates.title')">
     <div class="status-card">
       <span class="badge" :class="{ checking: pwa.checking.value }">
         <RefreshCw v-if="pwa.checking.value" :size="30" aria-hidden="true" />
         <Check v-else :size="30" stroke-width="2.6" aria-hidden="true" />
       </span>
       <h2>{{ title }}</h2>
-      <p role="status">{{ pwa.status.value }}</p>
+      <p role="status">{{ status }}</p>
     </div>
 
     <SettingsGroup>
       <SettingsRow
         :icon="Wifi"
         :tone="pwa.offlineReady.value ? 'success' : 'muted'"
-        label="Offline use"
+        :label="t('settings.updates.offlineUse')"
         :description="
           pwa.offlineReady.value
-            ? 'The app is saved for offline use.'
-            : 'Open the production app online once to prepare offline use.'
+            ? t('settings.updates.offlineSaved')
+            : t('settings.updates.offlinePending')
         "
-        :value="pwa.offlineReady.value ? 'Offline ready' : 'Preparing'"
+        :value="
+          pwa.offlineReady.value
+            ? t('app.offlineReady')
+            : t('settings.preparing')
+        "
       />
-      <SettingsRow :icon="Info" :label="`Version ${appVersion()}`" />
+      <SettingsRow
+        :icon="Info"
+        :label="t('settings.updates.version', { version: appVersion() })"
+      />
     </SettingsGroup>
 
     <UiButton
@@ -46,12 +58,11 @@ const title = computed(() => {
       class="check"
       :loading="pwa.checking.value"
       @click="pwa.checkForUpdates"
-      ><RefreshCw :size="16" aria-hidden="true" />Check for updates</UiButton
+      ><RefreshCw :size="16" aria-hidden="true" />{{
+        t('settings.updates.check')
+      }}</UiButton
     >
-    <p class="help">
-      When a new version is ready, you choose when to update. Unsaved drafts are
-      kept.
-    </p>
+    <p class="help">{{ t('settings.updates.help') }}</p>
   </SettingsScreen>
 </template>
 

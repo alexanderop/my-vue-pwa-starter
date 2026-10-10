@@ -13,9 +13,20 @@ export type Note = Readonly<{
 }>
 
 export type NoteDraft = Readonly<{ title: string; body: string }>
+// The UI turns each reason into a translated message.
+type NoteErrorReason =
+  | 'titleRequired'
+  | 'titleTooLong'
+  | 'bodyTooLong'
+  | 'storageUnavailable'
+  | 'storageFailed'
+  | 'connectionClosed'
+  | 'blocked'
+  | 'conflict'
+  | 'corrupt'
 export type NoteError = Readonly<{
   kind: 'validation' | 'storage' | 'conflict' | 'corrupt'
-  message: string
+  reason: NoteErrorReason
   field?: 'title' | 'body'
 }>
 export type NoteResult<T> = Result<T, NoteError>
@@ -39,25 +50,23 @@ export const noteSchema = v.object({
 })
 
 const draftSchema = v.object({
-  title: v.pipe(
-    v.string(),
-    v.trim(),
-    v.minLength(1, 'Give your note a title.'),
-    v.maxLength(120, 'Keep the title under 121 characters.'),
-  ),
-  body: v.pipe(
-    v.string(),
-    v.maxLength(20_000, 'Keep the note under 20,001 characters.'),
-  ),
+  title: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(120)),
+  body: v.pipe(v.string(), v.maxLength(20_000)),
 })
 
 export function parseDraft(draft: NoteDraft): NoteResult<NoteDraft> {
   const parsed = v.safeParse(draftSchema, draft)
-  return parsed.success
-    ? Result.ok(parsed.output)
-    : Result.err({
-        kind: 'validation',
-        message: parsed.issues[0].message,
-        field: parsed.issues[0].path?.[0]?.key === 'body' ? 'body' : 'title',
-      })
+  if (parsed.success) return Result.ok(parsed.output)
+  const [issue] = parsed.issues
+  if (issue.path?.[0]?.key === 'body')
+    return Result.err({
+      kind: 'validation',
+      reason: 'bodyTooLong',
+      field: 'body',
+    })
+  return Result.err({
+    kind: 'validation',
+    reason: issue.type === 'min_length' ? 'titleRequired' : 'titleTooLong',
+    field: 'title',
+  })
 }

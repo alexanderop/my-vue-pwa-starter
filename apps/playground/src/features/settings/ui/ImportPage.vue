@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useTranslation } from '../../../i18n'
 import { Check, CircleAlert, FileText, Upload } from '@lucide/vue'
 import { matchError } from '@starter/result'
 import type { BackupImportError, NotesService } from '../../notes'
@@ -10,17 +11,14 @@ import { useBackupTask } from './useBackupTask'
 const { service } = defineProps<{ service: NotesService }>()
 const emit = defineEmits<{ 'busy-change': [busy: boolean] }>()
 const backup = useBackupTask((busy) => emit('busy-change', busy))
-
-const plural = (count: number) => `${count} ${count === 1 ? 'note' : 'notes'}`
+const { t } = useTranslation()
 
 const errorMessage = (error: BackupImportError) =>
   matchError(error, {
-    BackupFileTooLarge: () => 'Choose a backup smaller than 10 MB.',
-    BackupUnreadable: () =>
-      'This file is not readable JSON. Choose a Fieldnotes backup.',
-    InvalidBackup: () =>
-      'Choose a valid Fieldnotes version 1 backup with no more than 5,000 notes.',
-    BackupStorageFailed: ({ failure }) => failure.message,
+    BackupFileTooLarge: () => t('settings.import.tooLarge'),
+    BackupUnreadable: () => t('settings.import.unreadable'),
+    InvalidBackup: () => t('settings.import.invalid'),
+    BackupStorageFailed: ({ failure }) => t(`notes.errors.${failure.reason}`),
   })
 
 async function importBackup(event: Event) {
@@ -32,7 +30,7 @@ async function importBackup(event: Event) {
     try {
       ;(await service.importBackup(file)).match({
         ok: (count) => {
-          backup.message.value = `Imported ${plural(count)} as new copies. Existing notes were kept. Trashed notes are in Trash.`
+          backup.message.value = t('settings.import.imported', count)
         },
         err: (error) => {
           backup.error.value = errorMessage(error)
@@ -41,27 +39,27 @@ async function importBackup(event: Event) {
     } finally {
       input.value = ''
     }
-  }, 'The backup could not be imported. Please try again.')
+  }, t('settings.import.failed'))
 }
 </script>
 <template>
-  <SettingsScreen title="Import backup">
+  <SettingsScreen :title="t('settings.import.title')">
     <div class="intro">
-      <h2>Restore from a backup</h2>
-      <p>Bring notes back from a Fieldnotes backup file.</p>
+      <h2>{{ t('settings.import.heading') }}</h2>
+      <p>{{ t('settings.import.intro') }}</p>
     </div>
 
     <label class="drop" :class="{ disabled: backup.busy.value }">
       <input
         type="file"
         accept=".json,application/json"
-        aria-label="Choose a Fieldnotes backup"
+        :aria-label="t('settings.import.choose')"
         :disabled="backup.busy.value"
         @change="importBackup"
       />
       <span class="drop-icon"><Upload :size="26" aria-hidden="true" /></span>
-      <span class="drop-title">Choose a backup file</span>
-      <span class="drop-hint">.json · up to 10 MB</span>
+      <span class="drop-title">{{ t('settings.import.chooseTitle') }}</span>
+      <span class="drop-hint">{{ t('settings.import.hint') }}</span>
     </label>
 
     <BackupStatus
@@ -70,21 +68,19 @@ async function importBackup(event: Event) {
       :error="backup.error.value"
     />
 
-    <SettingsGroup label="Good to know">
+    <SettingsGroup :label="t('settings.import.goodToKnow')">
       <ul class="notes">
         <li>
           <Check class="ok" :size="18" aria-hidden="true" />
-          <span
-            >Notes are added as new copies. Nothing you have is replaced.</span
-          >
+          <span>{{ t('settings.import.copies') }}</span>
         </li>
         <li>
           <CircleAlert class="warn" :size="18" aria-hidden="true" />
-          <span>Importing the same backup twice creates duplicates.</span>
+          <span>{{ t('settings.import.duplicates') }}</span>
         </li>
         <li>
           <FileText class="info" :size="18" aria-hidden="true" />
-          <span>Up to 5,000 notes and 10 MB per file.</span>
+          <span>{{ t('settings.import.limits') }}</span>
         </li>
       </ul>
     </SettingsGroup>

@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 import { defineBddConfig } from 'playwright-bdd'
 
+// Steps look up text with vue-i18n in Node, where no bundler defines its flags.
+Object.assign(globalThis, { __VUE_I18N_LEGACY_API__: false })
+
 const testDir = defineBddConfig({
   features: 'e2e/*.feature',
   steps: 'e2e/*.steps.ts',

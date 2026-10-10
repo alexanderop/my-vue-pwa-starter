@@ -68,13 +68,10 @@ describe('given the app components', () => {
 describe('given the accent registry', () => {
   const css = read('packages/ui/src/styles/index.css')
 
-  it.each(accents.map((accent) => accent.id))(
-    'should style the %s accent in the UI package',
-    (id) => {
-      // blue is the :root default, so it also appears as a plain selector.
-      expect(css).toContain(`[data-accent='${id}']`)
-    },
-  )
+  it.each(accents)('should style the %s accent in the UI package', (id) => {
+    // blue is the :root default, so it also appears as a plain selector.
+    expect(css).toContain(`[data-accent='${id}']`)
+  })
 })
 
 describe('given the persistence adapters', () => {

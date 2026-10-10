@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import { useTranslation } from '../../../i18n'
 import { ChevronLeft } from '@lucide/vue'
 defineProps<{ title: string }>()
 defineSlots<{ default(): unknown }>()
+const { t } = useTranslation()
 </script>
 <template>
   <section class="screen">
     <header class="screen-header">
       <RouterLink :to="{ name: 'settings' }" class="back"
-        ><ChevronLeft :size="22" aria-hidden="true" />Settings</RouterLink
+        ><ChevronLeft :size="22" aria-hidden="true" />{{
+          t('settings.back')
+        }}</RouterLink
       >
       <h1>{{ title }}</h1>
       <span />

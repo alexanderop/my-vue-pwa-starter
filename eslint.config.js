@@ -72,4 +72,20 @@ export default [
       'vue/prefer-true-attribute-shorthand': 'error',
     },
   },
+  {
+    // App text comes from the message catalogs in apps/playground/src/i18n.
+    files: ['apps/**/*.vue'],
+    rules: {
+      'vue/no-bare-strings-in-template': [
+        'error',
+        {
+          allowlist: [
+            ...'()[]{}<>,.:;!?&+-=*/#%|•·—'.split(''),
+            'fieldnotes',
+            '08:12',
+          ],
+        },
+      ],
+    },
+  },
 ]
